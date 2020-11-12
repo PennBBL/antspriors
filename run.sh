@@ -11,4 +11,9 @@ OutDir=/data/output # Bind /project/ExtraLong/data/groupTemplates
 # 1) Segmentation from freesurfer, in the same space as sub-100088_ses-CONTE1_desc-preproc_T1w.nii.gz
 # /project/ExtraLong/data/freesurferCrossSectional/fmriprep/sub-100088/ses-CONTE1/anat/sub-100088_ses-CONTE1_desc-aseg_dseg.nii.gz
 # ^ The type of tissue will need to be determined for each label in this image (i.e., GM, WM, CSF)
-# 2)
+# 2) ?
+
+# Create GM, WM and CSF images for each segmentation
+asegdseg=`find ${InDir} -name "*desc-aseg_dseg.nii.gz"`
+for image in ${asegdseg}; do
+  
