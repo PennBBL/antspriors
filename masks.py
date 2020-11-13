@@ -8,6 +8,7 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 import os
+from copy import deepcopy
 
 # List the available aseg images
 files = os.listdir('/data/input/')
@@ -20,12 +21,16 @@ tissue_df = pd.read_csv('/data/input/tissueClasses.csv')
 for aseg in asegs:
     aseg_img = nib.load('/data/input/'+aseg)
     aseg_gm = aseg_img.get_fdata()
-    aseg_wm = aseg_gm
-    aseg_csf = aseg_gm
+    aseg_wm = deepcopy(aseg_gm)
+    aseg_csf = deepcopy(aseg_gm)
     for i in tissue_df.Number:
-        aseg_gm[aseg_gm == i] = tissue_df[tissue_df['Number'] == i].GrayMatter
-        aseg_wm[aseg_wm == i] = tissue_df[tissue_df['Number'] == i].WhiteMatter
-        aseg_csf[aseg_csf == i] = tissue_df[tissue_df['Number'] == i].CSF
+        aseg_gm[aseg_gm == i] = tissue_df[tissue_df['Number'] == i].GrayMatter.values[0]
+        #print('Gray matter')
+        #print(tissue_df[tissue_df['Number'] == i].GrayMatter)
+        aseg_wm[aseg_wm == i] = tissue_df[tissue_df['Number'] == i].WhiteMatter.values[0]
+        #print('White matter')
+        #print(tissue_df[tissue_df['Number'] == i].WhiteMatter)
+        aseg_csf[aseg_csf == i] = tissue_df[tissue_df['Number'] == i].CSF.values[0]
     gm_img = nib.Nifti1Image(aseg_gm, affine=aseg_img.affine)
     wm_img = nib.Nifti1Image(aseg_wm, affine=aseg_img.affine)
     csf_img = nib.Nifti1Image(aseg_csf, affine=aseg_img.affine)
