@@ -14,6 +14,4 @@ OutDir=/data/output # Bind /project/ExtraLong/data/groupTemplates
 # 2) ?
 
 # Create GM, WM and CSF images for each segmentation
-asegdseg=`find ${InDir} -name "*desc-aseg_dseg.nii.gz"`
-for image in ${asegdseg}; do
-  
+python masks.py
