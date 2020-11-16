@@ -15,3 +15,5 @@ OutDir=/data/output # Bind /project/ExtraLong/data/groupTemplates
 
 # Create GM, WM and CSF images for each segmentation
 python masks.py
+
+#https://github.com/ANTsX/ANTs/blob/master/Scripts/antsCookTemplatePriors.sh - old way
