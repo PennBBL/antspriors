@@ -13,7 +13,7 @@ docker run --rm -ti --entrypoint=/bin/bash \
   -v /Users/butellyn/Documents/ExtraLong/data/freesurferCrossSectional/fmriprep/sub-87346/ses-10597/anat/sub-87346_ses-10597_desc-aseg_dseg.nii.gz:/data/input/sub-87346_ses-10597_desc-aseg_dseg.nii.gz \
   -v /Users/butellyn/Documents/ExtraLong/data/freesurferCrossSectional/fmriprep/sub-87346/ses-PNC1/anat/sub-87346_ses-PNC1_desc-aseg_dseg.nii.gz:/data/input/sub-87346_ses-PNC1_desc-aseg_dseg.nii.gz \
   -v /Users/butellyn/Documents/ExtraLong/data/singleSubjectTemplates/antssst/sub-87346/sub-87346_template0.nii.gz:/data/input/sub-87346_template0.nii.gz \
-  -v /Users/butellyn/Documents/ExtraLong/tissueClasses.csv:/data/input/tissueClasses.csv \
+  -v /Users/butellyn/Documents/antspriors/tissueClasses.csv:/data/input/tissueClasses.csv \
   -v /Users/butellyn/Documents/ExtraLong/data/singleSubjectTemplates:/data/output \
   pennbbl/antspriors
   #pennbbl/antspriors:<TBD>
