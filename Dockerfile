@@ -57,6 +57,7 @@ RUN mkdir /data/output
 RUN mkdir /scripts
 COPY run.sh /scripts/run.sh
 COPY masks.py /scripts/masks.py
+COPY averageMasks.py /scripts/averageMasks.py
 RUN chmod +x /scripts/*
 
 # Set the entrypoint

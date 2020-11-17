@@ -21,11 +21,11 @@ tissue_df = pd.read_csv('/data/input/tissueClasses.csv')
 for aseg in asegs:
     aseg_img = nib.load('/data/input/'+aseg)
     aseg_gmcort = aseg_img.get_fdata()
-    aseg_wmcort = deepcopy(aseg_gm)
-    aseg_csf = deepcopy(aseg_gm)
-    aseg_gmdeep = deepcopy(aseg_gm)
-    aseg_bstem = deepcopy(aseg_gm)
-    aseg_cereb = deepcopy(aseg_gm)
+    aseg_wmcort = deepcopy(aseg_gmcort)
+    aseg_csf = deepcopy(aseg_gmcort)
+    aseg_gmdeep = deepcopy(aseg_gmcort)
+    aseg_bstem = deepcopy(aseg_gmcort)
+    aseg_cereb = deepcopy(aseg_gmcort)
     for i in tissue_df.Number:
         aseg_gmcort[aseg_gmcort == i] = tissue_df[tissue_df['Number'] == i].GMCortical.values[0]
         aseg_wmcort[aseg_wmcort == i] = tissue_df[tissue_df['Number'] == i].WMCortical.values[0]
