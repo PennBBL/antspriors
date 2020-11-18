@@ -20,7 +20,7 @@ python masks.py
 ###### 2.) Create a group template from the SSTs
 ssts=`find ${InDir} -name "*template*"`
 for image in ${ssts}; do echo "${image}" >> ${OutDir}/tmp_subjlist.csv ; done
-antsMultivariateTemplateConstruction.sh -d 3 -o "${OutDir}/ExtraLongTemplate_" -n 0 -c 2 -j 2 ${OutDir}/tmp_subjlist.csv
+antsMultivariateTemplateConstruction.sh -d 3 -o "${OutDir}/${projectName}Template_" -n 0 -c 2 -j 2 ${OutDir}/tmp_subjlist.csv
 
 rm ${OutDir}/tmp_subjlist.csv
 
@@ -29,16 +29,16 @@ t1wToSSTwarps=`find ${InDir} -name "*Warp.nii.gz"`
 for warp in ${t1wToSSTwarps}; do
   bblid=`echo ${warp} | cut -d "_" -f 1 | cut -d "-" -f 2`;
   sesid=`echo ${warp} | cut -d "_" -f 2 | cut -d "-" -f 2`;
-  warpSubToExtraLongTemplate=`find ${OutDir}/ -name "ExtraLongTemplate_sub-${bblid}_template*Warp.nii.gz" -not -name "*Inverse*"`;
-  affSubToExtraLongTemplate=`find ${OutDir}/ -name "ExtraLongTemplate_sub-${bblid}_template*Affine.txt" -not -name "*Inverse*"`;
+  warpSubToGroupTemplate=`find ${OutDir}/ -name "${projectName}Template_sub-${bblid}_template*Warp.nii.gz" -not -name "*Inverse*"`;
+  affSubToGroupTemplate=`find ${OutDir}/ -name "${projectName}Template_sub-${bblid}_template*Affine.txt" -not -name "*Inverse*"`;
   affSubToSST=`find ${InDir}/ -name "sub-${bblid}_ses-${sesid}_desc-preproc_T1w*Affine.txt"`;
   antsApplyTransforms \
    -d 3 \
    -e 0 \
-   -o [${OutDir}/sub-${bblid}_ses-${sesid}_NormalizedtoExtraLongTemplateCompositeWarp.nii.gz, 1] \
-   -r ${OutDir}/ExtraLongTemplate_template0.nii.gz \
-   -t ${warpSubToExtraLongTemplate} \
-   -t ${affSubToExtraLongTemplate} \
+   -o [${OutDir}/sub-${bblid}_ses-${sesid}_Normalizedto${projectName}TemplateCompositeWarp.nii.gz, 1] \
+   -r ${OutDir}/${projectName}Template_template0.nii.gz \
+   -t ${warpSubToGroupTemplate} \
+   -t ${affSubToGroupTemplate} \
    -t ${warp} \
    -t ${affSubToSST};
 done
@@ -54,8 +54,8 @@ for mask in ${masks}; do
   bblid=`echo ${mask} | cut -d "_" -f 1 | cut -d "-" -f 2`;
   sesid=`echo ${mask} | cut -d "_" -f 2 | cut -d "-" -f 2`;
   masktype=`echo ${mask} | cut -d "_" -f 3`;
-  antsApplyTransforms -d 3 -e 0 -o ${OutDir}/sub-${bblid}_ses-${sesid}_${masktype}_mask_NormalizedtoExtraLongTemplate.nii.gz \
-    -i ${mask} -t ${OutDir}/sub-${bblid}_ses-${sesid}_NormalizedtoExtraLongTemplateCompositeWarp.nii.gz ;
+  antsApplyTransforms -d 3 -e 0 -o ${OutDir}/sub-${bblid}_ses-${sesid}_${masktype}_mask_Normalizedto${projectName}Template.nii.gz \
+    -i ${mask} -t ${OutDir}/sub-${bblid}_ses-${sesid}_Normalizedto${projectName}TemplateCompositeWarp.nii.gz ;
 done
 
 ###### 5.) Average all of the tissue classication images in the group template space
