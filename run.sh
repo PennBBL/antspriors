@@ -51,7 +51,11 @@ done
 masks=`find ${OutDir} -name "*mask*"`
 
 for mask in ${masks}; do
-
+  bblid=`echo ${mask} | cut -d "_" -f 1 | cut -d "-" -f 2`;
+  sesid=`echo ${mask} | cut -d "_" -f 2 | cut -d "-" -f 2`;
+  masktype=`echo ${mask} | cut -d "_" -f 3`;
+  antsApplyTransforms -d 3 -e 0 -o ${OutDir}/sub-${bblid}_ses-${sesid}_${masktype}_mask_NormalizedtoExtraLongTemplate.nii.gz \
+    -i ${mask} -t ${OutDir}/sub-${bblid}_ses-${sesid}_NormalizedtoExtraLongTemplateCompositeWarp.nii.gz ;
 done
 
 ###### 5.) Average all of the tissue classication images in the group template space
