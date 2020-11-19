@@ -15,7 +15,7 @@ OutDir=/data/output # Bind /project/ExtraLong/data/groupTemplates
 
 ###### 1.) Create tissue classification images for each segmentation
 #https://github.com/ANTsX/ANTs/blob/master/Scripts/antsCookTemplatePriors.sh - old way
-python masks.py
+python /scripts/masks.py
 
 ###### 2.) Create a group template from the SSTs
 ssts=`find ${InDir} -name "*template*"`
@@ -55,9 +55,10 @@ for mask in ${masks}; do
   sesid=`echo ${mask} | cut -d "_" -f 2 | cut -d "-" -f 2`;
   masktype=`echo ${mask} | cut -d "_" -f 3`;
   antsApplyTransforms -d 3 -e 0 -o ${OutDir}/sub-${bblid}_ses-${sesid}_${masktype}_mask_Normalizedto${projectName}Template.nii.gz \
-    -i ${mask} -t ${OutDir}/sub-${bblid}_ses-${sesid}_Normalizedto${projectName}TemplateCompositeWarp.nii.gz ;
+    -i ${mask} -t ${OutDir}/sub-${bblid}_ses-${sesid}_Normalizedto${projectName}TemplateCompositeWarp.nii.gz \
+    -r ${OutDir}/sub-${bblid}_ses-${sesid}_Normalizedto${projectName}TemplateCompositeWarp.nii.gz;
 done
 
 ###### 5.) Average all of the tissue classication images in the group template space
 ###### to create tissue class priors
-python averageMasks.py
+python /scripts/averageMasks.py 
