@@ -20,7 +20,7 @@ python /scripts/masks.py
 ###### 2.) Create a group template from the SSTs
 ssts=`find ${InDir} -name "*template*"`
 for image in ${ssts}; do echo "${image}" >> ${OutDir}/tmp_subjlist.csv ; done
-antsMultivariateTemplateConstruction.sh -d 3 -o "${OutDir}/${projectName}Template_" -n 0 -c 2 -j 2 ${OutDir}/tmp_subjlist.csv
+antsMultivariateTemplateConstruction.sh -d 3 -o "${OutDir}/${projectName}Template_" -r 1 -n 0 -m 40x60x30 -i 5 -y 0 -c 2 -j 2 ${OutDir}/tmp_subjlist.csv
 
 rm ${OutDir}/tmp_subjlist.csv
 
@@ -61,4 +61,4 @@ done
 
 ###### 5.) Average all of the tissue classication images in the group template space
 ###### to create tissue class priors
-python /scripts/averageMasks.py 
+python /scripts/averageMasks.py
