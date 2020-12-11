@@ -17,6 +17,13 @@ OutDir=/data/output # Bind /project/ExtraLong/data/groupTemplates
 #https://github.com/ANTsX/ANTs/blob/master/Scripts/antsCookTemplatePriors.sh - old way
 python /scripts/masks.py
 
+# Pad the tissue classification images such that they are in the same space as
+# the padded T1w images
+masks=`find ${OutDir}/* -name "*mask*"`
+for mask in ${masks}; do
+  ImageMath 3 ${mask} PadImage ${mask} 25;
+done
+
 ###### 2.) Create a group template from the SSTs
 ssts=`find ${InDir} -name "*template*"`
 for image in ${ssts}; do echo "${image}" >> ${OutDir}/tmp_subjlist.csv ; done
