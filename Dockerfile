@@ -54,6 +54,7 @@ RUN pip install nibabel==3.2.0
 
 RUN mkdir /data/input
 RUN mkdir /data/output
+RUN mkdir /data/input/dataverse_files
 RUN mkdir /scripts
 COPY run.sh /scripts/run.sh
 COPY masks.py /scripts/masks.py

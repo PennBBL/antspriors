@@ -69,3 +69,36 @@ done
 ###### 5.) Average all of the tissue classication images in the group template space
 ###### to create tissue class priors
 python /scripts/averageMasks.py
+
+###### 6.) Joint label fusion on the group template
+
+# Find 101 mindboggle t1w images
+mindt1w=`find ${InDir}/dataverse_files/*volumes/* -name "t1weighted_brain.nii.gz"`
+
+# Find 101 mindboggle label images
+#mindlabel=`find ${InDir}/mindboggle/dataverse_files/*volumes/* -name "labels.DKT31.manual+aseg.nii.gz"`
+
+# Construct call to antsJointLabelFusion.sh
+atlaslabelcall=""
+for mind in ${mindt1w}; do
+  # Find corresponding label image
+  mindlabel=`dirname ${mind}`
+  mindlabel=${mindlabel}/labels.DKT31.manual+aseg.nii.gz
+  atlaslabelcall=${atlaslabelcall}"-g ${mindt1w} -l ${mindlabel} "
+done
+
+antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0.nii.gz \\
+      -o ${OutDir}/malf -p ${OutDir}/malfPosteriors%04d.nii.gz ${atlaslabelcall}
+
+
+
+
+
+
+
+
+
+
+
+
+#
