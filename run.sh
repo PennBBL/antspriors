@@ -72,8 +72,9 @@ python /scripts/averageMasks.py
 
 ###### 6.) Joint label fusion on the group template
 
-# Find 101 mindboggle t1w images
-mindt1w=`find ${InDir}/dataverse_files/*volumes/* -name "t1weighted_brain.nii.gz"`
+# Find 101 mindboggle t1w images...
+#January 7, 2020: TEMPORARILY LIMIT TO OASIS BRAINS OVER QUALITY CONCERNS WITH OTHER IMAGES
+mindt1w=`find ${InDir}/dataverse_files/OASIS-TRT-20_volumes/* -name "t1weighted_brain.nii.gz"`
 
 # Find 101 mindboggle label images
 #mindlabel=`find ${InDir}/mindboggle/dataverse_files/*volumes/* -name "labels.DKT31.manual+aseg.nii.gz"`
