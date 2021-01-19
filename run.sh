@@ -27,7 +27,7 @@ done
 ###### 2.) Create a group template from the SSTs
 ssts=`find ${InDir} -name "*template*"`
 for image in ${ssts}; do echo "${image}" >> ${OutDir}/tmp_subjlist.csv ; done
-antsMultivariateTemplateConstruction.sh -d 3 -o "${OutDir}/${projectName}Template_" -r 1 -n 0 -m 40x60x30 -i 5 -y 0 -c 2 -j 2 ${OutDir}/tmp_subjlist.csv
+antsMultivariateTemplateConstruction.sh -d 3 -o "${OutDir}/${projectName}Template_" -n 0 -m 40x60x30 -i 5 -c 0 -z ${InDir}/MNI-1x1x1Head.nii.gz ${OutDir}/tmp_subjlist.csv
 
 rm ${OutDir}/tmp_subjlist.csv
 
@@ -74,6 +74,7 @@ python /scripts/averageMasks.py
 
 # Find 101 mindboggle t1w images...
 #January 7, 2020: TEMPORARILY LIMIT TO OASIS BRAINS OVER QUALITY CONCERNS WITH OTHER IMAGES
+#^ I manually checked all OASIS brains to make sure extraction had gone alright
 mindt1w=`find ${InDir}/dataverse_files/OASIS-TRT-20_volumes/* -name "t1weighted_brain.nii.gz"`
 
 # Find 101 mindboggle label images
@@ -83,15 +84,16 @@ mindt1w=`find ${InDir}/dataverse_files/OASIS-TRT-20_volumes/* -name "t1weighted_
 atlaslabelcall=""
 for mind in ${mindt1w}; do
   # Find corresponding label image
-  mindlabel=`dirname ${mind}`
-  mindlabel=${mindlabel}/labels.DKT31.manual+aseg.nii.gz
-  atlaslabelcall=${atlaslabelcall}"-g ${mindt1w} -l ${mindlabel} "
+  mindlabel=`dirname ${mind}`;
+  mindlabel=${mindlabel}/labels.DKT31.manual+aseg.nii.gz;
+  atlaslabelcall=${atlaslabelcall}"-g ${mind} -l ${mindlabel} ";
 done
 
-antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0.nii.gz \\
-      -o ${OutDir}/malf -p ${OutDir}/malfPosteriors%04d.nii.gz ${atlaslabelcall}
+antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0.nii.gz \
+  -o ${OutDir}/malf -p ${OutDir}/malfPosteriors%04d.nii.gz ${atlaslabelcall}
 
-
+mkdir ${OutDir}/malf
+mv ${OutDir}/malft1w* ${OutDir}/malf
 
 
 
