@@ -27,7 +27,13 @@ done
 ###### 2.) Create a group template from the SSTs
 ssts=`find ${InDir} -name "*template*"`
 for image in ${ssts}; do echo "${image}" >> ${OutDir}/tmp_subjlist.csv ; done
-antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" -n 0 -m 40x60x30 -i 5 -c 0 -z ${InDir}/MNI-1x1x1Head.nii.gz ${OutDir}/tmp_subjlist.csv
+min=`PrintHeader ${InDir}/MNI-1x1x1Head.nii.gz | grep "Voxel Spacing" | cut -d "[" -f 2 | cut -d "]" -f 1 | sed -r 's/,//g'`
+min=`python findMin.py ${min}`
+max=`PrintHeader ${InDir}/MNI-1x1x1Head.nii.gz`
+min=`python findMax.py ${min}`
+#antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" -n 0 -m 40x60x30 -i 5 -c 0 -z ${InDir}/MNI-1x1x1Head.nii.gz ${OutDir}/tmp_subjlist.csv
+/scripts/minc-toolkit-extras/ants_generate_iterations.py --min ${min} --max ${max} -z ${InDir}/MNI-1x1x1Head.nii.gz ${OutDir}/tmp_subjlist.csv
+
 
 rm ${OutDir}/tmp_subjlist.csv
 

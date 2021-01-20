@@ -57,6 +57,8 @@ RUN mkdir /data/output
 RUN mkdir /data/input/dataverse_files
 RUN mkdir /scripts
 COPY run.sh /scripts/run.sh
+COPY minc-toolkit-extras /scripts/minc-toolkit-extras
+COPY minMax.py /scripts/minMax.py
 COPY masks.py /scripts/masks.py
 COPY averageMasks.py /scripts/averageMasks.py
 RUN chmod +x /scripts/*
