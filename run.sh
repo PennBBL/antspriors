@@ -27,7 +27,7 @@ done
 ###### 2.) Create a group template from the SSTs
 ssts=`find ${InDir} -name "*template*"`
 for image in ${ssts}; do echo "${image}" >> ${OutDir}/tmp_subjlist.csv ; done
-antsMultivariateTemplateConstruction.sh -d 3 -o "${OutDir}/${projectName}Template_" -n 0 -m 40x60x30 -i 5 -c 0 -z ${InDir}/MNI-1x1x1Head.nii.gz ${OutDir}/tmp_subjlist.csv
+antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" -n 0 -m 40x60x30 -i 5 -c 0 -z ${InDir}/MNI-1x1x1Head.nii.gz ${OutDir}/tmp_subjlist.csv
 
 rm ${OutDir}/tmp_subjlist.csv
 
@@ -94,7 +94,7 @@ antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0.nii.g
 
 mkdir ${OutDir}/malf
 mv ${OutDir}/malft1w* ${OutDir}/malf
-
+mv ${OutDir}/malfPost* ${OutDir}/malf
 
 
 
