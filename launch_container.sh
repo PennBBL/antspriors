@@ -21,7 +21,7 @@ docker run --rm -ti --entrypoint=/bin/bash -e projectName="ExtraLong" \
   -v /Users/butellyn/Documents/antspriors/tissueClasses.csv:/data/input/tissueClasses.csv \
   -v /Users/butellyn/Documents/ExtraLong/data/mindboggle/dataverse_files:/data/input/dataverse_files \
   -v /Users/butellyn/Documents/chead_home/tmp/xcpEngine/space/MNI/MNI-1x1x1Head.nii.gz:/data/input/MNI-1x1x1Head.nii.gz \
-  -v /Users/butellyn/Documents/ExtraLong/data/groupTemplates/versionFour:/data/output \
+  -v /Users/butellyn/Documents/ExtraLong/data/groupTemplates/versionSeven:/data/output \
   pennbbl/antspriors:0.0.7
 
 

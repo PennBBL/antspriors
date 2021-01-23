@@ -27,13 +27,19 @@ done
 ###### 2.) Create a group template from the SSTs
 ssts=`find ${InDir} -name "*template*"`
 for image in ${ssts}; do echo "${image}" >> ${OutDir}/tmp_subjlist.csv ; done
-min=`PrintHeader ${InDir}/MNI-1x1x1Head.nii.gz | grep "Voxel Spacing" | cut -d "[" -f 2 | cut -d "]" -f 1 | sed -r 's/,//g'`
-min=`python findMin.py ${min}`
-max=`PrintHeader ${InDir}/MNI-1x1x1Head.nii.gz`
-min=`python findMax.py ${min}`
-#antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" -n 0 -m 40x60x30 -i 5 -c 0 -z ${InDir}/MNI-1x1x1Head.nii.gz ${OutDir}/tmp_subjlist.csv
-/scripts/minc-toolkit-extras/ants_generate_iterations.py --min ${min} --max ${max} -z ${InDir}/MNI-1x1x1Head.nii.gz ${OutDir}/tmp_subjlist.csv
+voxdim=`PrintHeader ${InDir}/MNI-1x1x1Head.nii.gz | grep "Voxel Spacing" | cut -d "[" -f 2 | cut -d "]" -f 1 | sed -r 's/,//g'`
+min=`python /scripts/minMax.py ${voxdim} --min`
+imgdim1=`PrintHeader ${InDir}/MNI-1x1x1Head.nii.gz | grep " dim\[1\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
+imgdim2=`PrintHeader ${InDir}/MNI-1x1x1Head.nii.gz | grep " dim\[2\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
+imgdim3=`PrintHeader ${InDir}/MNI-1x1x1Head.nii.gz | grep " dim\[3\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
+max=`python /scripts/minMax.py ${imgdim1} ${imgdim2} ${imgdim3}`
 
+iterinfo=`/scripts/minc-toolkit-extras/ants_generate_iterations.py --min ${min} --max ${max}`
+iterinfo=`echo ${iterinfo} | sed -e 's/--convergence\+/-q/g' | sed -e 's/--shrink-factors\+/-f/g' | sed -e 's/--smoothing-sigmas\+/-s/g'`
+iterinfo=`echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 's/\[\+//g'`
+antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" -n 0 -i 5 -c 0 ${iterinfo} -z ${InDir}/MNI-1x1x1Head.nii.gz ${OutDir}/tmp_subjlist.csv
+# What is the equivalent of -m in antsMultivariateTemplateConstruction2.sh?
+# Invalid in 1:
 
 rm ${OutDir}/tmp_subjlist.csv
 
