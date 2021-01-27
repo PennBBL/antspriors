@@ -61,6 +61,7 @@ COPY minc-toolkit-extras /scripts/minc-toolkit-extras
 COPY minMax.py /scripts/minMax.py
 COPY masks.py /scripts/masks.py
 COPY averageMasks.py /scripts/averageMasks.py
+COPY tissueClasses.csv /data/input/tissueClasses.csv 
 RUN chmod +x /scripts/*
 
 # Set the entrypoint
