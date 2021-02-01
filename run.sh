@@ -37,7 +37,7 @@ max=`python /scripts/minMax.py ${imgdim1} ${imgdim2} ${imgdim3}`
 iterinfo=`/scripts/minc-toolkit-extras/ants_generate_iterations.py --min ${min} --max ${max}`
 iterinfo=`echo ${iterinfo} | sed -e 's/--convergence\+/-q/g' | sed -e 's/--shrink-factors\+/-f/g' | sed -e 's/--smoothing-sigmas\+/-s/g'`
 iterinfo=`echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 's/\[\+//g'`
-antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" -n 0 -i 5 -c 2 -j 10 -g .15 -m CC[ 3 ] ${iterinfo} -z ${InDir}/MNI-1x1x1Head.nii.gz ${OutDir}/tmp_subjlist.csv
+antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" -n 0 -i 5 -c 2 -j 10 -g .15 -m CC[3] ${iterinfo} -z ${InDir}/MNI-1x1x1Head.nii.gz ${OutDir}/tmp_subjlist.csv
 # What is the equivalent of -m in antsMultivariateTemplateConstruction2.sh?
 # -q: max-iterations (edit later if still bad)
 
@@ -108,6 +108,8 @@ mkdir ${OutDir}/malf
 mv ${OutDir}/malft1w* ${OutDir}/malf
 mv ${OutDir}/malfPost* ${OutDir}/malf
 
+mkdir ${OutDir}/masks
+mv ${OutDir}/*mask.nii.gz ${OutDir}/masks
 
 
 
