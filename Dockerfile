@@ -55,13 +55,16 @@ RUN pip install nibabel==3.2.0
 RUN mkdir /data/input
 RUN mkdir /data/output
 RUN mkdir /data/input/dataverse_files
+RUN mkdir /data/input/templates
 RUN mkdir /scripts
+
+COPY MNI-1x1x1Head.nii.gz /data/input/templates/MNI-1x1x1Head.nii.gz
 COPY run.sh /scripts/run.sh
 COPY minc-toolkit-extras /scripts/minc-toolkit-extras
 COPY minMax.py /scripts/minMax.py
 COPY masks.py /scripts/masks.py
 COPY averageMasks.py /scripts/averageMasks.py
-COPY tissueClasses.csv /data/input/tissueClasses.csv 
+COPY tissueClasses.csv /data/input/tissueClasses.csv
 RUN chmod +x /scripts/*
 
 # Set the entrypoint

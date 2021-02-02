@@ -13,6 +13,11 @@ OutDir=/data/output # Bind /project/ExtraLong/data/groupTemplates
 # ^ The type of tissue will need to be determined for each label in this image (i.e., GM, WM, CSF)
 # 2) ?
 
+###### 0.) Check if a reference template is given, if not, make it MNI
+#if [[ -z "${REFTMP}" ]]; then
+#  REFTMP="MNI-1x1x1Head.nii.gz"
+#fi
+
 ###### 1.) Create tissue classification images for each segmentation
 #https://github.com/ANTsX/ANTs/blob/master/Scripts/antsCookTemplatePriors.sh - old way
 python /scripts/masks.py
@@ -25,19 +30,27 @@ for mask in ${masks}; do
 done
 
 ###### 2.) Create a group template from the SSTs
-ssts=`find ${InDir} -name "*template*"`
+ssts=`find ${InDir} -name "*template0*"`
 for image in ${ssts}; do echo "${image}" >> ${OutDir}/tmp_subjlist.csv ; done
-voxdim=`PrintHeader ${InDir}/MNI-1x1x1Head.nii.gz | grep "Voxel Spacing" | cut -d "[" -f 2 | cut -d "]" -f 1 | sed -r 's/,//g'`
+
+REFTMP="MNI-1x1x1Head" #Can make this an argument to the container later
+
+ImageMath 3 ${OutDir}/${REFTMP}_pad.nii.gz PadImage ${InDir}/templates/${REFTMP}.nii.gz 25
+
+# Get the dimensions of the padded MNI template
+voxdim=`PrintHeader ${OutDir}/${REFTMP}_pad.nii.gz | grep "Voxel Spacing" | cut -d "[" -f 2 | cut -d "]" -f 1 | sed -r 's/,//g'`
 min=`python /scripts/minMax.py ${voxdim} --min`
-imgdim1=`PrintHeader ${InDir}/MNI-1x1x1Head.nii.gz | grep " dim\[1\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
-imgdim2=`PrintHeader ${InDir}/MNI-1x1x1Head.nii.gz | grep " dim\[2\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
-imgdim3=`PrintHeader ${InDir}/MNI-1x1x1Head.nii.gz | grep " dim\[3\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
+imgdim1=`PrintHeader ${OutDir}/${REFTMP}_pad.nii.gz | grep " dim\[1\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
+imgdim2=`PrintHeader ${OutDir}/${REFTMP}_pad.nii.gz | grep " dim\[2\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
+imgdim3=`PrintHeader ${OutDir}/${REFTMP}_pad.nii.gz | grep " dim\[3\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
 max=`python /scripts/minMax.py ${imgdim1} ${imgdim2} ${imgdim3}`
 
+# Generate the flags to specify the smoothing and shrinkage parameters
 iterinfo=`/scripts/minc-toolkit-extras/ants_generate_iterations.py --min ${min} --max ${max}`
 iterinfo=`echo ${iterinfo} | sed -e 's/--convergence\+/-q/g' | sed -e 's/--shrink-factors\+/-f/g' | sed -e 's/--smoothing-sigmas\+/-s/g'`
 iterinfo=`echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 's/\[\+//g'`
-antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" -n 0 -i 5 -c 2 -j 10 -g .15 -m CC[3] ${iterinfo} -z ${InDir}/MNI-1x1x1Head.nii.gz ${OutDir}/tmp_subjlist.csv
+
+antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" -n 0 -i 5 -c 2 -j 16 -g .15 -m CC[3] ${iterinfo} -z ${OutDir}/MNI-1x1x1Head_pad.nii.gz ${OutDir}/tmp_subjlist.csv
 # What is the equivalent of -m in antsMultivariateTemplateConstruction2.sh?
 # -q: max-iterations (edit later if still bad)
 
