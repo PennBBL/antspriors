@@ -50,7 +50,9 @@ iterinfo=`/scripts/minc-toolkit-extras/ants_generate_iterations.py --min ${min} 
 iterinfo=`echo ${iterinfo} | sed -e 's/--convergence\+/-q/g' | sed -e 's/--shrink-factors\+/-f/g' | sed -e 's/--smoothing-sigmas\+/-s/g'`
 iterinfo=`echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 's/\[\+//g'`
 
-antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" -n 0 -i 5 -c 2 -j 16 -g .15 -m CC[3] ${iterinfo} -z ${OutDir}/MNI-1x1x1Head_pad.nii.gz ${OutDir}/tmp_subjlist.csv
+antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" \
+  -n 0 -i 5 -c 2 -j 16 -g .15 -m CC[3] -q 120x120x100x40 ${iterinfo} \
+  -z ${OutDir}/MNI-1x1x1Head_pad.nii.gz ${OutDir}/tmp_subjlist.csv
 # What is the equivalent of -m in antsMultivariateTemplateConstruction2.sh?
 # -q: max-iterations (edit later if still bad)
 
@@ -62,7 +64,7 @@ for warp in ${t1wToSSTwarps}; do
   bblid=`echo ${warp} | cut -d "_" -f 1 | cut -d "-" -f 2`;
   sesid=`echo ${warp} | cut -d "_" -f 2 | cut -d "-" -f 2`;
   warpSubToGroupTemplate=`find ${OutDir}/ -name "${projectName}Template_sub-${bblid}_template*Warp.nii.gz" -not -name "*Inverse*"`;
-  affSubToGroupTemplate=`find ${OutDir}/ -name "${projectName}Template_sub-${bblid}_template*Affine.txt" -not -name "*Inverse*"`;
+  affSubToGroupTemplate=`find ${OutDir}/ -name "${projectName}Template_sub-${bblid}_template*Affine.mat" -not -name "*Inverse*"`;
   affSubToSST=`find ${InDir}/ -name "sub-${bblid}_ses-${sesid}_desc-preproc_T1w*Affine.txt"`;
   antsApplyTransforms \
    -d 3 \
@@ -91,11 +93,18 @@ for mask in ${masks}; do
     -r ${OutDir}/sub-${bblid}_ses-${sesid}_Normalizedto${projectName}TemplateCompositeWarp.nii.gz;
 done
 
-###### 5.) Average all of the tissue classication images in the group template space
+###### 5.) Binarize the warped masks in the group template space
+
+python /scripts/binarizeWarpedMasks.py
+
+###### 6.) Average all of the tissue classication images in the group template space
 ###### to create tissue class priors
 python /scripts/averageMasks.py
 
-###### 6.) Joint label fusion on the group template
+###### 7.) Joint label fusion on the group template
+
+# Extract the group template brain
+antsBrainExtraction.sh ${OutDir}/${projectName}Template_template0.nii.gz ${OutDir}/${projectName}Template_template0_brain.nii.gz
 
 # Find 101 mindboggle t1w images...
 #January 7, 2020: TEMPORARILY LIMIT TO OASIS BRAINS OVER QUALITY CONCERNS WITH OTHER IMAGES
@@ -114,7 +123,7 @@ for mind in ${mindt1w}; do
   atlaslabelcall=${atlaslabelcall}"-g ${mind} -l ${mindlabel} ";
 done
 
-antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0.nii.gz \
+antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0_brain.nii.gz \
   -o ${OutDir}/malf -p ${OutDir}/malfPosteriors%04d.nii.gz ${atlaslabelcall}
 
 mkdir ${OutDir}/malf
