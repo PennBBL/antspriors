@@ -61,6 +61,7 @@ RUN mkdir /scripts
 COPY MNI-1x1x1Head.nii.gz /data/input/templates/MNI-1x1x1Head.nii.gz
 COPY run.sh /scripts/run.sh
 COPY minc-toolkit-extras /scripts/minc-toolkit-extras
+COPY MICCAI2012-Multi-Atlas-Challenge-Data /data/input/MICCAI2012-Multi-Atlas-Challenge-Data
 COPY minMax.py /scripts/minMax.py
 COPY masks.py /scripts/masks.py
 COPY averageMasks.py /scripts/averageMasks.py

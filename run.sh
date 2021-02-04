@@ -105,7 +105,18 @@ python /scripts/averageMasks.py
 ###### 7.) Joint label fusion on the group template
 
 # Extract the group template brain
-antsBrainExtraction.sh -d 3 ${OutDir}/${projectName}Template_template0.nii.gz ${OutDir}/${projectName}Template_template0_brain.nii.gz
+antsBrainExtraction.sh -d 3 -a ${OutDir}/${projectName}Template_template0.nii.gz \
+  -e ${InDir}/MICCAI2012-Multi-Atlas-Challenge-Data/T_template0.nii.gz \
+  -m ${InDir}/MICCAI2012-Multi-Atlas-Challenge-Data/T_template0_BrainCerebellumProbabilityMask.nii.gz \
+  -o ${OutDir}/
+
+
+
+
+
+
+
+
 
 # Find 101 mindboggle t1w images...
 #January 7, 2020: TEMPORARILY LIMIT TO OASIS BRAINS OVER QUALITY CONCERNS WITH OTHER IMAGES
