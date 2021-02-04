@@ -81,6 +81,7 @@ done
 # Third Transform >>> Output from antssst: warp from native to SST
 # Fourth Transform >>> Output from antssst: affine from native to SST
 
+
 ###### 4.) Warp the tissue classification images in T1w-space to the group template space
 masks=`find ${OutDir} -name "*mask*"`
 
@@ -94,17 +95,17 @@ for mask in ${masks}; do
 done
 
 ###### 5.) Binarize the warped masks in the group template space
-
 python /scripts/binarizeWarpedMasks.py
 
 ###### 6.) Average all of the tissue classication images in the group template space
-###### to create tissue class priors
+###### to create tissue class priors (divide by sum of the voxels if they are all
+###### non-zero, and do nothing otherwise)
 python /scripts/averageMasks.py
 
 ###### 7.) Joint label fusion on the group template
 
 # Extract the group template brain
-antsBrainExtraction.sh ${OutDir}/${projectName}Template_template0.nii.gz ${OutDir}/${projectName}Template_template0_brain.nii.gz
+antsBrainExtraction.sh -d 3 ${OutDir}/${projectName}Template_template0.nii.gz ${OutDir}/${projectName}Template_template0_brain.nii.gz
 
 # Find 101 mindboggle t1w images...
 #January 7, 2020: TEMPORARILY LIMIT TO OASIS BRAINS OVER QUALITY CONCERNS WITH OTHER IMAGES
