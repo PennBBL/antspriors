@@ -91,7 +91,7 @@ for mask in ${masks}; do
   masktype=`echo ${mask} | cut -d "_" -f 3`;
   antsApplyTransforms -d 3 -e 0 -o ${OutDir}/sub-${bblid}_ses-${sesid}_${masktype}_mask_Normalizedto${projectName}Template.nii.gz \
     -i ${mask} -t ${OutDir}/sub-${bblid}_ses-${sesid}_Normalizedto${projectName}TemplateCompositeWarp.nii.gz \
-    -r ${OutDir}/sub-${bblid}_ses-${sesid}_Normalizedto${projectName}TemplateCompositeWarp.nii.gz;
+    -r ${OutDir}/${projectName}Template_template0.nii.gz;
 done
 
 ###### 5.) Binarize the warped masks in the group template space
@@ -105,10 +105,16 @@ python /scripts/averageMasks.py
 ###### 7.) Joint label fusion on the group template
 
 # Extract the group template brain
+#antsRegistrationSyN.sh -d 3 -f ${OutDir}/${projectName}Template_template0.nii.gz \
+#  -m ${InDir}/MICCAI2012-Multi-Atlas-Challenge-Data/T_template0.nii.gz \
+#  -o ${OutDir}/MICCAITemplate_to_${projectName}Template
+
+#antsApplyTransforms -d 3 -e 0 -
+
 antsBrainExtraction.sh -d 3 -a ${OutDir}/${projectName}Template_template0.nii.gz \
   -e ${InDir}/MICCAI2012-Multi-Atlas-Challenge-Data/T_template0.nii.gz \
   -m ${InDir}/MICCAI2012-Multi-Atlas-Challenge-Data/T_template0_BrainCerebellumProbabilityMask.nii.gz \
-  -o ${OutDir}/
+  -o ${OutDir}/${projectName}Template_
 
 
 
