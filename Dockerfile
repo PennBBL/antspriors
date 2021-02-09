@@ -62,10 +62,13 @@ COPY MNI-1x1x1Head.nii.gz /data/input/templates/MNI-1x1x1Head.nii.gz
 COPY run.sh /scripts/run.sh
 COPY minc-toolkit-extras /scripts/minc-toolkit-extras
 COPY OASIS_PAC /data/input/OASIS_PAC
+COPY tissueClasses.csv /data/input/tissueClasses.csv
+
 COPY minMax.py /scripts/minMax.py
 COPY masks.py /scripts/masks.py
 COPY averageMasks.py /scripts/averageMasks.py
-COPY tissueClasses.csv /data/input/tissueClasses.csv
+COPY binarizeWarpedMasks.py /scripts/binarizeWarpedMasks.py
+
 RUN chmod +x /scripts/*
 
 # Set the entrypoint

@@ -2,7 +2,7 @@
 ### input aseg dseg images.
 ###
 ### Ellyn Butler
-### November 12, 2020
+### November 12, 2020 - February 8, 2021
 
 import nibabel as nib
 import numpy as np
@@ -33,8 +33,11 @@ for aseg in asegs:
         aseg_gmdeep[aseg_gmdeep == i] = tissue_df[tissue_df['Number'] == i].GMDeep.values[0]
         aseg_bstem[aseg_bstem == i] = tissue_df[tissue_df['Number'] == i].Brainstem.values[0]
         aseg_cereb[aseg_cereb == i] = tissue_df[tissue_df['Number'] == i].Cerebellum.values[0]
-        if tissue_df[tissue_df['Number'] == i].Cerebellum.values[0] == 72:
-            break
+    if np.array_equal(np.unique(aseg_gmcort), np.array([0, 1])):
+        print('All values in the aseg image have successfully been converted to 0 or 1')
+    else:
+        print('Oh no! There is a value in one of your aseg images that is not in tissueClasses.csv')
+        break
     gmcort_img = nib.Nifti1Image(aseg_gmcort, affine=aseg_img.affine)
     wmcort_img = nib.Nifti1Image(aseg_wmcort, affine=aseg_img.affine)
     csf_img = nib.Nifti1Image(aseg_csf, affine=aseg_img.affine)

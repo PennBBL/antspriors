@@ -1,3 +1,6 @@
+echo "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1" >> /root/.bashrc
+source /root/.bashrc
+
 InDir=/data/input
 OutDir=/data/output # Bind /project/ExtraLong/data/groupTemplates
 # The input directory will contain all of the files, straight up
@@ -30,7 +33,7 @@ for mask in ${masks}; do
 done
 
 ###### 2.) Create a group template from the SSTs
-ssts=`find ${InDir} -name "*template0*"`
+ssts=`find ${InDir} -name "sub*template0.nii.gz"`
 for image in ${ssts}; do echo "${image}" >> ${OutDir}/tmp_subjlist.csv ; done
 
 REFTMP="MNI-1x1x1Head" #Can make this an argument to the container later
@@ -83,7 +86,7 @@ done
 
 
 ###### 4.) Warp the tissue classification images in T1w-space to the group template space
-masks=`find ${OutDir} -name "*mask*"`
+masks=`find ${OutDir} -name "*mask.nii.gz"`
 
 for mask in ${masks}; do
   bblid=`echo ${mask} | cut -d "_" -f 1 | cut -d "-" -f 2`;
@@ -109,20 +112,10 @@ python /scripts/averageMasks.py
 #  -m ${InDir}/MICCAI2012-Multi-Atlas-Challenge-Data/T_template0.nii.gz \
 #  -o ${OutDir}/MICCAITemplate_to_${projectName}Template
 
-#antsApplyTransforms -d 3 -e 0 -
-
 antsBrainExtraction.sh -d 3 -a ${OutDir}/${projectName}Template_template0.nii.gz \
-  -e ${InDir}/MICCAI2012-Multi-Atlas-Challenge-Data/T_template0.nii.gz \
-  -m ${InDir}/MICCAI2012-Multi-Atlas-Challenge-Data/T_template0_BrainCerebellumProbabilityMask.nii.gz \
+  -e ${InDir}/OASIS_PAC/T_template0.nii.gz \
+  -m ${InDir}/OASIS_PAC/T_template0_BrainCerebellumProbabilityMask.nii.gz \
   -o ${OutDir}/${projectName}Template_
-
-
-
-
-
-
-
-
 
 # Find 101 mindboggle t1w images...
 #January 7, 2020: TEMPORARILY LIMIT TO OASIS BRAINS OVER QUALITY CONCERNS WITH OTHER IMAGES
@@ -141,8 +134,10 @@ for mind in ${mindt1w}; do
   atlaslabelcall=${atlaslabelcall}"-g ${mind} -l ${mindlabel} ";
 done
 
-antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0_brain.nii.gz \
-  -o ${OutDir}/malf -p ${OutDir}/malfPosteriors%04d.nii.gz ${atlaslabelcall}
+antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0.nii.gz \
+  -o ${OutDir}/${projectName}Tempalte_malf -c 2 -j 16 \
+  -x ${OutDir}/ExtraLongTemplate_BrainExtractionMask.nii.gz \
+  -p ${OutDir}/malfPosteriors%04d.nii.gz ${atlaslabelcall}
 
 mkdir ${OutDir}/malf
 mv ${OutDir}/malft1w* ${OutDir}/malf
@@ -151,8 +146,14 @@ mv ${OutDir}/malfPost* ${OutDir}/malf
 mkdir ${OutDir}/masks
 mv ${OutDir}/*mask.nii.gz ${OutDir}/masks
 
+mkdir ${OutDir}/priors
+mv ${OutDir}/*averageMask.nii.gz ${OutDir}/priors
 
+mkdir ${OutDir}/Normalizedto${projectName}Template
+mv ${OutDir}/*Normalizedto${projectName}Template.nii.gz ${OutDir}/Normalizedto${projectName}Template
 
+mkdir ${OutDir}/SST
+mv ${OutDir}/*sub-* ${OutDir}/SST
 
 
 

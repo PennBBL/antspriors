@@ -21,7 +21,7 @@ docker run --rm -ti --entrypoint=/bin/bash -e projectName="ExtraLong" \
   -v /Users/butellyn/Documents/ExtraLong/data/mindboggle/dataverse_files:/data/input/dataverse_files \
   -v /Users/butellyn/Documents/chead_home/tmp/xcpEngine/space/MNI/MNI-1x1x1Head.nii.gz:/data/input/MNI-1x1x1Head.nii.gz \
   -v /Users/butellyn/Documents/ExtraLong/data/groupTemplates/versionEleven:/data/output \
-  pennbbl/antspriors:0.0.17
+  pennbbl/antspriors:0.0.19
 #  -v /Users/butellyn/Documents/antspriors/tissueClasses.csv:/data/input/tissueClasses.csv \
 
 SINGULARITYENV_projectName=ExtraLong singularity run --writable-tmpfs --cleanenv \
