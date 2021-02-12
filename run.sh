@@ -54,7 +54,7 @@ iterinfo=`echo ${iterinfo} | sed -e 's/--convergence\+/-q/g' | sed -e 's/--shrin
 iterinfo=`echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 's/\[\+//g'`
 
 antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" \
-  -n 0 -i 5 -c 2 -j 16 -g .15 -m CC[3] -q 120x120x100x40 ${iterinfo} \
+  -n 0 -i 5 -c 2 -j 16 -g .1 -m CC[2] -q 120x120x100x80 ${iterinfo} \
   -z ${OutDir}/MNI-1x1x1Head_pad.nii.gz ${OutDir}/tmp_subjlist.csv
 # What is the equivalent of -m in antsMultivariateTemplateConstruction2.sh?
 # -q: max-iterations (edit later if still bad)
@@ -135,13 +135,14 @@ for mind in ${mindt1w}; do
 done
 
 antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0.nii.gz \
-  -o ${OutDir}/${projectName}Tempalte_malf -c 2 -j 16 \
+  -o ${OutDir}/${projectName}Template_malf -c 2 -j 16 \
   -x ${OutDir}/ExtraLongTemplate_BrainExtractionMask.nii.gz \
   -p ${OutDir}/malfPosteriors%04d.nii.gz ${atlaslabelcall}
 
 mkdir ${OutDir}/malf
 mv ${OutDir}/malft1w* ${OutDir}/malf
 mv ${OutDir}/malfPost* ${OutDir}/malf
+mv ${OutDir}/*malf*.txt ${OutDir}/malf
 
 mkdir ${OutDir}/masks
 mv ${OutDir}/*mask.nii.gz ${OutDir}/masks
@@ -154,6 +155,9 @@ mv ${OutDir}/*Normalizedto${projectName}Template.nii.gz ${OutDir}/Normalizedto${
 
 mkdir ${OutDir}/SST
 mv ${OutDir}/*sub-* ${OutDir}/SST
+
+mkdir ${OutDir}/jobs
+mv ${OutDir}/job*.sh ${OutDir}/jobs
 
 
 
