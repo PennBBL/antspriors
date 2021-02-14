@@ -54,7 +54,7 @@ iterinfo=`echo ${iterinfo} | sed -e 's/--convergence\+/-q/g' | sed -e 's/--shrin
 iterinfo=`echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 's/\[\+//g'`
 
 antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" \
-  -n 0 -i 5 -c 2 -j 16 -g .1 -m CC[2] -q 120x120x100x80 ${iterinfo} \
+  -n 0 -i 5 -c 2 -j 16 -g .15 -m CC[2] ${iterinfo} \
   -z ${OutDir}/MNI-1x1x1Head_pad.nii.gz ${OutDir}/tmp_subjlist.csv
 # What is the equivalent of -m in antsMultivariateTemplateConstruction2.sh?
 # -q: max-iterations (edit later if still bad)
