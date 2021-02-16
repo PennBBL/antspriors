@@ -53,11 +53,15 @@ iterinfo=`/scripts/minc-toolkit-extras/ants_generate_iterations.py --min ${min} 
 iterinfo=`echo ${iterinfo} | sed -e 's/--convergence\+/-q/g' | sed -e 's/--shrink-factors\+/-f/g' | sed -e 's/--smoothing-sigmas\+/-s/g'`
 iterinfo=`echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 's/\[\+//g'`
 
+
+
 antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" \
-  -n 0 -i 5 -c 2 -j 16 -g .15 -m CC[2] ${iterinfo} \
+  -n 0 -i 5 -c 2 -j ${NumSSTs} -g .15 -m CC[2] ${iterinfo} \
   -z ${OutDir}/MNI-1x1x1Head_pad.nii.gz ${OutDir}/tmp_subjlist.csv
-# What is the equivalent of -m in antsMultivariateTemplateConstruction2.sh?
-# -q: max-iterations (edit later if still bad)
+# -j should be equal to the number of SSTs going into the template
+
+#antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" \
+#  -n 0 -c 2 -j ${NumSSTs} ${OutDir}/tmp_subjlist.csv
 
 rm ${OutDir}/tmp_subjlist.csv
 
@@ -135,7 +139,7 @@ for mind in ${mindt1w}; do
 done
 
 antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0.nii.gz \
-  -o ${OutDir}/${projectName}Template_malf -c 2 -j 16 \
+  -o ${OutDir}/${projectName}Template_malf -c 2 -j 16 -k 1 \
   -x ${OutDir}/ExtraLongTemplate_BrainExtractionMask.nii.gz \
   -p ${OutDir}/malfPosteriors%04d.nii.gz ${atlaslabelcall}
 
