@@ -64,22 +64,22 @@ antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Templa
 rm ${OutDir}/tmp_subjlist.csv
 
 ###### 3.) Concatenate the transforms from T1w-space to group template space
-t1wToSSTwarps=`find ${InDir} -name "*Warp.nii.gz"`
-for warp in ${t1wToSSTwarps}; do
+sesToSSTwarps=`find ${InDir} -name "*Warp.nii.gz"`
+for warp in ${sesToSSTwarps}; do
   bblid=`echo ${warp} | cut -d "_" -f 1 | cut -d "-" -f 2`;
   sesid=`echo ${warp} | cut -d "_" -f 2 | cut -d "-" -f 2`;
-  warpSubToGroupTemplate=`find ${OutDir}/ -name "${projectName}Template_sub-${bblid}_template*Warp.nii.gz" -not -name "*Inverse*"`;
-  affSubToGroupTemplate=`find ${OutDir}/ -name "${projectName}Template_sub-${bblid}_template*Affine.mat" -not -name "*Inverse*"`;
-  affSubToSST=`find ${InDir}/ -name "sub-${bblid}_ses-${sesid}_desc-preproc_T1w*Affine.txt"`;
+  warpSSTToGroupTemplate=`find ${OutDir}/ -name "${projectName}Template_sub-${bblid}_template*Warp.nii.gz" -not -name "*Inverse*"`;
+  affSSTToGroupTemplate=`find ${OutDir}/ -name "${projectName}Template_sub-${bblid}_template*Affine.mat" -not -name "*Inverse*"`;
+  affSesToSST=`find ${InDir}/ -name "sub-${bblid}_ses-${sesid}_desc-preproc_T1w*Affine.txt"`;
   antsApplyTransforms \
    -d 3 \
    -e 0 \
    -o [${OutDir}/sub-${bblid}_ses-${sesid}_Normalizedto${projectName}TemplateCompositeWarp.nii.gz, 1] \
    -r ${OutDir}/${projectName}Template_template0.nii.gz \
-   -t ${warpSubToGroupTemplate} \
-   -t ${affSubToGroupTemplate} \
+   -t ${warpSSTToGroupTemplate} \
+   -t ${affSSTToGroupTemplate} \
    -t ${warp} \
-   -t ${affSubToSST};
+   -t ${affSesToSST};
 done
 # First Transform >>> Output from line 23: warp from SST to group template
 # Second Transform >>> Output from line 23: affine for SST to group
@@ -100,7 +100,7 @@ for mask in ${masks}; do
 done
 
 ###### 5.) Binarize the warped masks in the group template space
-python /scripts/binarizeWarpedMasks.py
+python /scripts/cleanWarpedMasks.py
 
 ###### 6.) Average all of the tissue classication images in the group template space
 ###### to create tissue class priors (divide by sum of the voxels if they are all
@@ -151,7 +151,7 @@ mkdir ${OutDir}/masks
 mv ${OutDir}/*mask.nii.gz ${OutDir}/masks
 
 mkdir ${OutDir}/priors
-mv ${OutDir}/*averageMask.nii.gz ${OutDir}/priors
+mv ${OutDir}/*prior.nii.gz ${OutDir}/priors
 
 mkdir ${OutDir}/Normalizedto${projectName}Template
 mv ${OutDir}/*Normalizedto${projectName}Template.nii.gz ${OutDir}/Normalizedto${projectName}Template

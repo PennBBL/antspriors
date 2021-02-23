@@ -1,6 +1,6 @@
 # dataverse_files needs to be added to the python script that constructs the call
 
-docker run --rm -ti --entrypoint=/bin/bash -e projectName="ExtraLong" NumSSTs=8 \
+docker run --rm -ti --entrypoint=/bin/bash -e projectName="ExtraLong" -e NumSSTs=8 \
   -v /Users/butellyn/Documents/ExtraLong/data/singleSubjectTemplates/antssst5/sub-100079/ses-motive1/sub-100079_ses-motive1_desc-preproc_T1w_padscale0Warp.nii.gz:/data/input/sub-100079_ses-motive1_desc-preproc_T1w_padscale0Warp.nii.gz \
   -v /Users/butellyn/Documents/ExtraLong/data/singleSubjectTemplates/antssst5/sub-100079/ses-motive1/sub-100079_ses-motive1_desc-preproc_T1w_padscale0Affine.txt:/data/input/sub-100079_ses-motive1_desc-preproc_T1w_padscale0Affine.txt \
   -v /Users/butellyn/Documents/ExtraLong/data/singleSubjectTemplates/antssst5/sub-100079/ses-PNC2/sub-100079_ses-PNC2_desc-preproc_T1w_padscale1Warp.nii.gz:/data/input/sub-100079_ses-PNC2_desc-preproc_T1w_padscale1Warp.nii.gz \

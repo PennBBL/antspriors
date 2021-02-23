@@ -20,14 +20,14 @@ tissues_dict = {'Brainstem':[], 'CSF':[], 'Cerebellum':[], 'GMCortical':[],
     'GMDeep':[], 'WMCortical':[]}
 
 # Declare an empty array
-masks = [file for file in files if 'Brainstem_binary_Normalizedto' in file]
+masks = [file for file in files if 'Brainstem_clean_Normalizedto' in file]
 mask = [file for file in masks if 'sub-' in file][0]
 img = nib.load('/data/output/'+mask)
 img_array = img.get_fdata()
 tissue_sum = np.zeros(img_array.shape)
 
 for tissue in tissues_dict.keys():
-    masks = [file for file in files if tissue+'_binary_Normalizedto' in file]
+    masks = [file for file in files if tissue+'_clean_Normalizedto' in file]
     projectName = masks[0].split('_')[4].split('.')[0].replace('Normalizedto', '').replace('Template', '')
     masks_array = []
     for mask in masks:
@@ -41,7 +41,7 @@ for tissue in tissues_dict.keys():
     tissues_dict[tissue] = np.true_divide(tissues_dict[tissue], tissue_sum)
     tissues_dict[tissue][np.isnan(tissues_dict[tissue])] = 0
     mask_average = nib.Nifti1Image(tissues_dict[tissue], affine=img.affine)
-    mask_average.to_filename('/data/output/'+tissue+'_Normalizedto'+projectName+'Template_averageMask.nii.gz')
+    mask_average.to_filename('/data/output/'+tissue+'_Normalizedto'+projectName+'Template_prior.nii.gz')
 
 
 #This should just be 0s and 1s:
