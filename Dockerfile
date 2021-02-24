@@ -67,7 +67,7 @@ COPY tissueClasses.csv /data/input/tissueClasses.csv
 COPY minMax.py /scripts/minMax.py
 COPY masks.py /scripts/masks.py
 COPY averageMasks.py /scripts/averageMasks.py
-COPY binarizeWarpedMasks.py /scripts/binarizeWarpedMasks.py
+COPY cleanWarpedMasks.py /scripts/cleanWarpedMasks.py
 
 RUN chmod +x /scripts/*
 
