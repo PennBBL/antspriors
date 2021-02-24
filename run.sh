@@ -1,5 +1,5 @@
-echo "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1" >> /root/.bashrc
-source /root/.bashrc
+echo "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1" >> /root/.bashrc #February 24, 2021: Works in docker but not singularity...
+source /root/.bashrc #February 24, 2021: Works in docker but not singularity...
 
 InDir=/data/input
 OutDir=/data/output # Bind /project/ExtraLong/data/groupTemplates
