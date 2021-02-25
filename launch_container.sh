@@ -1,6 +1,6 @@
 # dataverse_files needs to be added to the python script that constructs the call
 
-docker run --rm -ti --entrypoint=/bin/bash -e projectName="ExtraLong" -e NumSSTs=8 \
+docker run --rm -ti --entrypoint=/bin/bash -e projectName="ExtraLong" -e NumSSTs=8 -e atlases="nowhitematter" \
   -v /Users/butellyn/Documents/ExtraLong/data/singleSubjectTemplates/antssst5/sub-100079/ses-motive1/sub-100079_ses-motive1_desc-preproc_T1w_padscale0Warp.nii.gz:/data/input/sub-100079_ses-motive1_desc-preproc_T1w_padscale0Warp.nii.gz \
   -v /Users/butellyn/Documents/ExtraLong/data/singleSubjectTemplates/antssst5/sub-100079/ses-motive1/sub-100079_ses-motive1_desc-preproc_T1w_padscale0Affine.txt:/data/input/sub-100079_ses-motive1_desc-preproc_T1w_padscale0Affine.txt \
   -v /Users/butellyn/Documents/ExtraLong/data/singleSubjectTemplates/antssst5/sub-100079/ses-PNC2/sub-100079_ses-PNC2_desc-preproc_T1w_padscale1Warp.nii.gz:/data/input/sub-100079_ses-PNC2_desc-preproc_T1w_padscale1Warp.nii.gz \
@@ -16,8 +16,9 @@ docker run --rm -ti --entrypoint=/bin/bash -e projectName="ExtraLong" -e NumSSTs
   -v /Users/butellyn/Documents/ExtraLong/data/freesurferCrossSectional/fmriprep/sub-113054/ses-PNC2/anat/sub-113054_ses-PNC2_desc-aseg_dseg.nii.gz:/data/input/sub-113054_ses-PNC2_desc-aseg_dseg.nii.gz \
   -v /Users/butellyn/Documents/ExtraLong/data/singleSubjectTemplates/antssst5/sub-113054/sub-113054_template0.nii.gz:/data/input/sub-113054_template0.nii.gz \
   -v /Users/butellyn/Documents/ExtraLong/data/mindboggle/dataverse_files:/data/input/dataverse_files \
+  -v /Users/butellyn/Documents/ExtraLong/data/mindboggleVsBrainCOLOR_Atlases:/data/input/mindboggleVsBrainCOLOR_Atlases \
   -v /Users/butellyn/Documents/ExtraLong/data/groupTemplates/versionLocalSixteen:/data/output \
-  pennbbl/antspriors:0.0.23
+  pennbbl/antspriors:0.0.28
 
 SINGULARITYENV_projectName=ExtraLong SINGULARITYENV_NumSSTs=8 singularity run --writable-tmpfs --cleanenv \
   -B /project/ExtraLong/data/singleSubjectTemplates/antssst5/sub-100079/ses-motive1/sub-100079_ses-motive1_desc-preproc_T1w_padscale0Warp.nii.gz:/data/input/sub-100079_ses-motive1_desc-preproc_T1w_padscale0Warp.nii.gz \

@@ -53,8 +53,8 @@ iterinfo=`/scripts/minc-toolkit-extras/ants_generate_iterations.py --min ${min} 
 iterinfo=`echo ${iterinfo} | sed -e 's/--convergence\+/-q/g' | sed -e 's/--shrink-factors\+/-f/g' | sed -e 's/--smoothing-sigmas\+/-s/g'`
 iterinfo=`echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 's/\[\+//g'`
 
-antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" \
-  -n 0 -i 5 -c 2 -j ${NumSSTs} -g .15 -m CC[2] -t SyN[0.2,3,0] ${iterinfo} \
+/scripts/ntsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" \
+  -A 0 -n 0 -i 5 -c 2 -j ${NumSSTs} -g .15 -m CC[2] -t SyN[0.2,3,0] ${iterinfo} \
   -z ${OutDir}/MNI-1x1x1Head_pad.nii.gz ${OutDir}/tmp_subjlist.csv
 # -j should be equal to the number of SSTs going into the template
 
@@ -105,7 +105,7 @@ python /scripts/cleanWarpedMasks.py
 ###### 6.) Average all of the tissue classication images in the group template space
 ###### to create tissue class priors (divide by sum of the voxels if they are all
 ###### non-zero, and do nothing otherwise)
-python /scripts/averageMasks.py
+python /scripts/scaleMasks.py
 
 ###### 7.) Joint label fusion on the group template
 
@@ -122,22 +122,31 @@ antsBrainExtraction.sh -d 3 -a ${OutDir}/${projectName}Template_template0.nii.gz
 # Find 101 mindboggle t1w images...
 #January 7, 2020: TEMPORARILY LIMIT TO OASIS BRAINS OVER QUALITY CONCERNS WITH OTHER IMAGES
 #^ I manually checked all OASIS brains to make sure extraction had gone alright
-mindt1w=`find ${InDir}/dataverse_files/OASIS-TRT-20_volumes/* -name "t1weighted_brain.nii.gz"`
-
+if [ ${atlases} == "whitematter" ]; then
+  atlast1w=`find ${InDir}/dataverse_files/OASIS-TRT-20_volumes/* -name "t1weighted_brain.nii.gz"`;
+else
+  atlast1w=`find ${InDir}/mindboggleVsBrainCOLOR_Atlases/mindboggleHeads/* -name "OASIS-TRT*.nii.gz"`;
+fi
 # Find 101 mindboggle label images
 #mindlabel=`find ${InDir}/mindboggle/dataverse_files/*volumes/* -name "labels.DKT31.manual+aseg.nii.gz"`
 
 # Construct call to antsJointLabelFusion.sh
 atlaslabelcall=""
-for mind in ${mindt1w}; do
+for atlas in ${atlast1w}; do
   # Find corresponding label image
-  mindlabel=`dirname ${mind}`;
-  mindlabel=${mindlabel}/labels.DKT31.manual+aseg.nii.gz;
-  atlaslabelcall=${atlaslabelcall}"-g ${mind} -l ${mindlabel} ";
+  if [ ${atlases} == "whitematter" ]; then
+    atlaslabel=`dirname ${atlas}`;
+    atlaslabel=${atlaslabel}/labels.DKT31.manual+aseg.nii.gz;
+  else
+    atlaslabel=`basename ${atlas}`
+    atlaslabel=$(echo "${atlaslabel}" | sed "s/.nii.gz/_DKT31.nii.gz/")
+    atlaslabel=${InDir}/mindboggleVsBrainCOLOR_Atlases/mindboggleLabels/${atlaslabel}
+  fi
+  atlaslabelcall=${atlaslabelcall}"-g ${atlas} -l ${atlaslabel} ";
 done
 
 antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0.nii.gz \
-  -o ${OutDir}/${projectName}Template_malf -c 2 -j 16 -k 1 \
+  -o ${OutDir}/${projectName}Template_malf -c 2 -j 8 -k 1 \
   -x ${OutDir}/ExtraLongTemplate_BrainExtractionMask.nii.gz \
   -p ${OutDir}/malfPosteriors%04d.nii.gz ${atlaslabelcall}
 

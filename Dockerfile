@@ -64,9 +64,10 @@ COPY minc-toolkit-extras /scripts/minc-toolkit-extras
 COPY OASIS_PAC /data/input/OASIS_PAC
 COPY tissueClasses.csv /data/input/tissueClasses.csv
 
+COPY multivariateTemplateConstruction2.sh /scripts/multivariateTemplateConstruction2.sh
 COPY minMax.py /scripts/minMax.py
 COPY masks.py /scripts/masks.py
-COPY averageMasks.py /scripts/averageMasks.py
+COPY scaleMasks.py /scripts/scaleMasks.py
 COPY cleanWarpedMasks.py /scripts/cleanWarpedMasks.py
 
 RUN chmod +x /scripts/*
