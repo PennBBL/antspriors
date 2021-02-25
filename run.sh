@@ -27,7 +27,7 @@ python /scripts/masks.py
 
 # Pad the tissue classification images such that they are in the same space as
 # the padded T1w images
-masks=`find ${OutDir}/* -name "*mask*"`
+masks=`find ${OutDir}/* -name "*mask*.nii.gz"`
 for mask in ${masks}; do
   ImageMath 3 ${mask} PadImage ${mask} 25;
 done
@@ -57,9 +57,6 @@ iterinfo=`echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 
   -A 0 -n 0 -i 5 -c 2 -j ${NumSSTs} -g .15 -m CC[2] -t SyN[0.2,3,0] ${iterinfo} \
   -z ${OutDir}/MNI-1x1x1Head_pad.nii.gz ${OutDir}/tmp_subjlist.csv
 # -j should be equal to the number of SSTs going into the template
-
-#antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" \
-#  -n 0 -c 2 -j ${NumSSTs} ${OutDir}/tmp_subjlist.csv
 
 rm ${OutDir}/tmp_subjlist.csv
 

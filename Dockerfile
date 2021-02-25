@@ -70,6 +70,7 @@ COPY masks.py /scripts/masks.py
 COPY scaleMasks.py /scripts/scaleMasks.py
 COPY cleanWarpedMasks.py /scripts/cleanWarpedMasks.py
 
+RUN chmod 777 /data/*
 RUN chmod +x /scripts/*
 
 # Set the entrypoint
