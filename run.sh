@@ -54,7 +54,7 @@ iterinfo=`echo ${iterinfo} | sed -e 's/--convergence\+/-q/g' | sed -e 's/--shrin
 iterinfo=`echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 's/\[\+//g'`
 
 /scripts/ntsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" \
-  -A 0 -n 0 -i 5 -c 2 -j ${NumSSTs} -g .15 -m CC[2] -t SyN[0.2,3,0] ${iterinfo} \
+  -a 0 -A 2 -n 0 -i 5 -c 2 -j ${NumSSTs} -g .15 -m CC[2] -t SyN[0.2,3,0] ${iterinfo} \
   -z ${OutDir}/MNI-1x1x1Head_pad.nii.gz ${OutDir}/tmp_subjlist.csv
 # -j should be equal to the number of SSTs going into the template
 
