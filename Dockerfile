@@ -64,7 +64,7 @@ COPY minc-toolkit-extras /scripts/minc-toolkit-extras
 COPY OASIS_PAC /data/input/OASIS_PAC
 COPY tissueClasses.csv /data/input/tissueClasses.csv
 
-COPY multivariateTemplateConstruction2.sh /scripts/multivariateTemplateConstruction2.sh
+COPY antsMultivariateTemplateConstruction2.sh /scripts/antsMultivariateTemplateConstruction2.sh
 COPY minMax.py /scripts/minMax.py
 COPY masks.py /scripts/masks.py
 COPY scaleMasks.py /scripts/scaleMasks.py
