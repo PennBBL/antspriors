@@ -54,9 +54,10 @@ iterinfo=`echo ${iterinfo} | sed -e 's/--convergence\+/-q/g' | sed -e 's/--shrin
 iterinfo=`echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 's/\[\+//g'`
 
 /scripts/antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" \
-  -a 0 -A 2 -n 0 -i 5 -c 2 -j ${NumSSTs} -g .15 -m CC[2] -t SyN[0.2,3,0] ${iterinfo} \
+  -a 0 -A 2 -n 0 -i 5 -c 2 -j ${NumSSTs} -g .15 -m CC[2] ${iterinfo} \
   -z ${OutDir}/MNI-1x1x1Head_pad.nii.gz ${OutDir}/tmp_subjlist.csv
 # -j should be equal to the number of SSTs going into the template
+# February 28, 2021 Syn step might be too aggressive
 
 rm ${OutDir}/tmp_subjlist.csv
 
@@ -151,7 +152,11 @@ mkdir ${OutDir}/malf
 mv ${OutDir}/malft1w* ${OutDir}/malf
 mv ${OutDir}/malfPost* ${OutDir}/malf
 mv ${OutDir}/*malf*.txt ${OutDir}/malf
-mv ${OutDir}/*_malft1weighted_* ${OutDir}/malf
+if [ ${atlases} == "whitematter" ]; then
+  mv ${OutDir}/*_malft1weighted_* ${OutDir}/malf
+else
+  mv ${OutDir}/*_malfOASIS-* ${OutDir}/malf
+fi
 
 mkdir ${OutDir}/masks
 mv ${OutDir}/*mask.nii.gz ${OutDir}/masks
