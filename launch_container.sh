@@ -18,7 +18,7 @@ docker run --rm -ti --entrypoint=/bin/bash -e projectName="ExtraLong" -e NumSSTs
   -v /Users/butellyn/Documents/ExtraLong/data/mindboggle/dataverse_files:/data/input/dataverse_files \
   -v /Users/butellyn/Documents/ExtraLong/data/mindboggleVsBrainCOLOR_Atlases:/data/input/mindboggleVsBrainCOLOR_Atlases \
   -v /Users/butellyn/Documents/ExtraLong/data/groupTemplates/versionLocalSixteen:/data/output \
-  pennbbl/antspriors:0.0.28
+  pennbbl/antspriors:0.0.27
 
 SINGULARITYENV_projectName=ExtraLong SINGULARITYENV_NumSSTs=8 singularity run --writable-tmpfs --cleanenv \
   -B /project/ExtraLong/data/singleSubjectTemplates/antssst5/sub-100079/ses-motive1/sub-100079_ses-motive1_desc-preproc_T1w_padscale0Warp.nii.gz:/data/input/sub-100079_ses-motive1_desc-preproc_T1w_padscale0Warp.nii.gz \

@@ -53,9 +53,10 @@ iterinfo=`/scripts/minc-toolkit-extras/ants_generate_iterations.py --min ${min} 
 iterinfo=`echo ${iterinfo} | sed -e 's/--convergence\+/-q/g' | sed -e 's/--shrink-factors\+/-f/g' | sed -e 's/--smoothing-sigmas\+/-s/g'`
 iterinfo=`echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 's/\[\+//g'`
 
-/scripts/antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" \
-  -a 0 -A 2 -n 0 -i 5 -c 2 -j ${NumSSTs} -g .15 -m CC[2] ${iterinfo} \
+antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" \
+  -n 0 -i 5 -c 2 -j ${NumSSTs} -g .15 -m CC[2] ${iterinfo} \
   -z ${OutDir}/MNI-1x1x1Head_pad.nii.gz ${OutDir}/tmp_subjlist.csv
+#-a 0 -A 2
 # -j should be equal to the number of SSTs going into the template
 # February 28, 2021 Syn step might be too aggressive
 
