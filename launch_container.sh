@@ -17,8 +17,18 @@ docker run --rm -ti --entrypoint=/bin/bash -e projectName="ExtraLong" -e NumSSTs
   -v /Users/butellyn/Documents/ExtraLong/data/singleSubjectTemplates/antssst5/sub-113054/sub-113054_template0.nii.gz:/data/input/sub-113054_template0.nii.gz \
   -v /Users/butellyn/Documents/ExtraLong/data/mindboggle/dataverse_files:/data/input/dataverse_files \
   -v /Users/butellyn/Documents/ExtraLong/data/mindboggleVsBrainCOLOR_Atlases:/data/input/mindboggleVsBrainCOLOR_Atlases \
-  -v /Users/butellyn/Documents/ExtraLong/data/groupTemplates/versionLocalSixteen:/data/output \
-  pennbbl/antspriors:0.0.27
+  -v /Users/butellyn/Documents/ExtraLong/data/groupTemplates/versionLocalOne:/data/output \
+  pennbbl/antspriors:0.0.34
+
+docker run --rm -ti --entrypoint=/bin/bash -e projectName="ExtraLong" -e NumSSTs=8 -e atlases="nowhitematter" \
+    -v /Users/butellyn/Documents/ExtraLong/data/singleSubjectTemplates/antssst5/sub-100079:/data/input/antssst/sub-100079 \
+    -v /Users/butellyn/Documents/ExtraLong/data/freesurferCrossSectional/fmriprep/sub-100079:/data/input/fmriprep/sub-100079 \
+    -v /Users/butellyn/Documents/ExtraLong/data/singleSubjectTemplates/antssst5/sub-113054:/data/input/antssst/sub-113054 \
+    -v /Users/butellyn/Documents/ExtraLong/data/freesurferCrossSectional/fmriprep/sub-113054:/data/input/fmriprep/sub-113054 \
+    -v /Users/butellyn/Documents/ExtraLong/data/mindboggle/dataverse_files:/data/input/dataverse_files \
+    -v /Users/butellyn/Documents/ExtraLong/data/mindboggleVsBrainCOLOR_Atlases:/data/input/mindboggleVsBrainCOLOR_Atlases \
+    -v /Users/butellyn/Documents/ExtraLong/data/groupTemplates/antspriors:/data/output \
+    pennbbl/antspriors
 
 SINGULARITYENV_projectName=ExtraLong SINGULARITYENV_NumSSTs=8 singularity run --writable-tmpfs --cleanenv \
   -B /project/ExtraLong/data/singleSubjectTemplates/antssst5/sub-100079/ses-motive1/sub-100079_ses-motive1_desc-preproc_T1w_padscale0Warp.nii.gz:/data/input/sub-100079_ses-motive1_desc-preproc_T1w_padscale0Warp.nii.gz \
@@ -37,4 +47,4 @@ SINGULARITYENV_projectName=ExtraLong SINGULARITYENV_NumSSTs=8 singularity run --
   -B /project/ExtraLong/data/singleSubjectTemplates/antssst5/sub-113054/sub-113054_template0.nii.gz:/data/input/sub-113054_template0.nii.gz \
   -B /project/ExtraLong/data/mindboggle/dataverse_files:/data/input/dataverse_files \
   -B /project/ExtraLong/data/groupTemplates/versionEighteen:/data/output \
-  /project/ExtraLong/images/antspriors_0.0.25.sif
+  /project/ExtraLong/images/antspriors_0.0.34.sif

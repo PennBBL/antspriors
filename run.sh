@@ -22,6 +22,8 @@ OutDir=/data/output # Bind /project/ExtraLong/data/groupTemplates
 #fi
 
 ###### 1.) Create tissue classification images for each segmentation
+
+
 #https://github.com/ANTsX/ANTs/blob/master/Scripts/antsCookTemplatePriors.sh - old way
 python /scripts/masks.py
 
@@ -31,6 +33,7 @@ masks=`find ${OutDir}/* -name "*mask*.nii.gz"`
 for mask in ${masks}; do
   ImageMath 3 ${mask} PadImage ${mask} 25;
 done
+
 
 ###### 2.) Create a group template from the SSTs
 ssts=`find ${InDir} -name "sub*template0.nii.gz"`

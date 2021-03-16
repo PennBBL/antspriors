@@ -48,7 +48,7 @@ RUN conda install -y python=3.7.1 \
 
 RUN pip install pandas==1.1.4
 RUN pip install nibabel==3.2.0
-
+RUN pip install scipy==1.6.1
 
 ############################
 
@@ -56,6 +56,8 @@ RUN mkdir /data/input
 RUN mkdir /data/output
 RUN mkdir /data/input/dataverse_files
 RUN mkdir /data/input/templates
+RUN mkdir /data/input/antssst
+RUN mkdir /data/input/fmriprep
 RUN mkdir /scripts
 
 COPY MNI-1x1x1Head.nii.gz /data/input/templates/MNI-1x1x1Head.nii.gz
