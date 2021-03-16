@@ -2,7 +2,7 @@
 ### input aseg dseg images.
 ###
 ### Ellyn Butler
-### November 12, 2020 - March 15, 2021
+### November 12, 2020 - March 16, 2021
 
 import nibabel as nib
 import numpy as np
@@ -34,15 +34,18 @@ for aseg in asegs:
     mask_img = nib.load(fmriprepdir+'/'+mask)
     mask_array = mask_img.get_fdata()
     # Dilate the mask
-    mask_array_dilated = ndimage.binary_dilation(mask_array, iterations=2).astype(mask_array.dtype)
+    mask_array_dilated = ndimage.binary_dilation(mask_array, iterations=3).astype(mask_array.dtype)
     #https://www.programcreek.com/python/example/93929/scipy.ndimage.binary_dilation
     #https://nilearn.github.io/manipulating_images/manipulating_images.html
     ### Call all area that is in the dilated mask but not in the original mask CSF (24)
-    # 1.) Get the voxels that are in mask_array_dilated but not in mask_array
-    mask_array_intersection = mask_array_dilated - mask_array
+    # 1.) Get the voxels that are in mask_array_dilated but not in the aseg image
+    aseg_binary = deepcopy(aseg_gmcort)
+    aseg_binary[aseg_binary > 0] = 1
+    mask_array_intersection = mask_array_dilated - aseg_binary
     # 2.) Multiply the intersection by 24 (the value of CSF in freesurfer's aseg image)
     mask_array_csf = mask_array_intersection*24
     # 3.) Add the intersection to the aseg image
+    aseg_gmcort_old = deepcopy(aseg_gmcort)
     aseg_gmcort = aseg_gmcort + mask_array_csf
     # Copy gm_cort for all the other tissue classes
     aseg_wmcort = deepcopy(aseg_gmcort)
@@ -69,28 +72,36 @@ for aseg in asegs:
     gmdeep_img = nib.Nifti1Image(aseg_gmdeep, affine=aseg_img.affine)
     bstem_img = nib.Nifti1Image(aseg_bstem, affine=aseg_img.affine)
     cereb_img = nib.Nifti1Image(aseg_cereb, affine=aseg_img.affine)
-    gmcort_img.to_filename('/data/output/'+aseg.replace('desc-aseg_dseg', 'GMCortical_mask'))
-    wmcort_img.to_filename('/data/output/'+aseg.replace('desc-aseg_dseg', 'WMCortical_mask'))
-    csf_img.to_filename('/data/output/'+aseg.replace('desc-aseg_dseg', 'CSF_mask'))
-    gmdeep_img.to_filename('/data/output/'+aseg.replace('desc-aseg_dseg', 'GMDeep_mask'))
-    bstem_img.to_filename('/data/output/'+aseg.replace('desc-aseg_dseg', 'Brainstem_mask'))
-    cereb_img.to_filename('/data/output/'+aseg.replace('desc-aseg_dseg', 'Cerebellum_mask'))
+    aseg_filename = os.path.basename(aseg)
+    gmcort_img.to_filename('/data/output/'+aseg_filename.replace('desc-aseg_dseg', 'GMCortical_mask'))
+    wmcort_img.to_filename('/data/output/'+aseg_filename.replace('desc-aseg_dseg', 'WMCortical_mask'))
+    csf_img.to_filename('/data/output/'+aseg_filename.replace('desc-aseg_dseg', 'CSF_mask'))
+    gmdeep_img.to_filename('/data/output/'+aseg_filename.replace('desc-aseg_dseg', 'GMDeep_mask'))
+    bstem_img.to_filename('/data/output/'+aseg_filename.replace('desc-aseg_dseg', 'Brainstem_mask'))
+    cereb_img.to_filename('/data/output/'+aseg_filename.replace('desc-aseg_dseg', 'Cerebellum_mask'))
 
 # Sanity check: After adding the external CSF, are the number of non-zero voxels
 # the same as in the dilated mask? If so, then none of the original labels were
-# changed in the process of adding external CSF
-aseg_gmcort_binary = aseg_gmcort
-aseg_gmcort_binary[aseg_gmcort_binary > 0] = 1
-np.sum(aseg_gmcort_binary) #1392893.0
-np.sum(mask_array_dilated) #1654501.0... eek
-np.sum(mask_array) #1522108.0... eek eek. No idea how this could be less than np.sum(aseg_gmcort_binary)
+# changed in the process of adding external CSF (run after line 49)
+#aseg_gmcort_binary_old = aseg_gmcort_old
+#aseg_gmcort_binary_old[aseg_gmcort_binary_old > 0] = 1
+#aseg_gmcort_binary = aseg_gmcort
+#aseg_gmcort_binary[aseg_gmcort_binary > 0] = 1
+#np.sum(aseg_gmcort_binary_old) #1392893.0
+#np.sum(aseg_gmcort_binary) #1721507.0
+#np.sum(mask_array_dilated) #1721507.0
+#np.sum(mask_array) #1522108.0... so the mask is bigger than the aseg labels
 
+# Export
+#aseg_gmcort_binary_old = nib.Nifti1Image(aseg_gmcort_binary_old, affine=aseg_img.affine)
+#aseg_gmcort_binary = nib.Nifti1Image(aseg_gmcort_binary, affine=aseg_img.affine)
+#mask_array_dilated = nib.Nifti1Image(mask_array_dilated, affine=aseg_img.affine)
+#mask_array = nib.Nifti1Image(mask_array, affine=aseg_img.affine)
 
-
-
-
-
-
+#aseg_gmcort_binary_old.to_filename('/data/output/aseg_gmcort_binary_old.nii.gz')
+#aseg_gmcort_binary.to_filename('/data/output/aseg_gmcort_binary.nii.gz')
+#mask_array_dilated.to_filename('/data/output/mask_array_dilated.nii.gz')
+#mask_array.to_filename('/data/output/mask_array.nii.gz')
 
 
 
