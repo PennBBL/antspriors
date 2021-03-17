@@ -1,5 +1,6 @@
-echo "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1" >> /root/.bashrc #February 24, 2021: Works in docker but not singularity...
-source /root/.bashrc #February 24, 2021: Works in docker but not singularity...
+mybashrc=`find /home/ -name "*.bashrc"`
+echo "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1" >> ${mybashrc}
+source ${mybashrc} #February 24, 2021: Works in docker but not singularity...
 
 InDir=/data/input
 OutDir=/data/output # Bind /project/ExtraLong/data/groupTemplates
@@ -22,8 +23,6 @@ OutDir=/data/output # Bind /project/ExtraLong/data/groupTemplates
 #fi
 
 ###### 1.) Create tissue classification images for each segmentation
-
-
 #https://github.com/ANTsX/ANTs/blob/master/Scripts/antsCookTemplatePriors.sh - old way
 python /scripts/masks.py
 
@@ -66,17 +65,17 @@ antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Templa
 rm ${OutDir}/tmp_subjlist.csv
 
 ###### 3.) Concatenate the transforms from T1w-space to group template space
-sesToSSTwarps=`find ${InDir} -name "*Warp.nii.gz"`
+sesToSSTwarps=`find ${InDir} -name "*padscale*Warp.nii.gz" -not -name "*Inverse*"`
 for warp in ${sesToSSTwarps}; do
-  bblid=`echo ${warp} | cut -d "_" -f 1 | cut -d "-" -f 2`;
-  sesid=`echo ${warp} | cut -d "_" -f 2 | cut -d "-" -f 2`;
-  warpSSTToGroupTemplate=`find ${OutDir}/ -name "${projectName}Template_sub-${bblid}_template*Warp.nii.gz" -not -name "*Inverse*"`;
-  affSSTToGroupTemplate=`find ${OutDir}/ -name "${projectName}Template_sub-${bblid}_template*Affine.mat" -not -name "*Inverse*"`;
-  affSesToSST=`find ${InDir}/ -name "sub-${bblid}_ses-${sesid}_desc-preproc_T1w*Affine.txt"`;
+  subid=`echo ${warp} | cut -d "/" -f 7 | cut -d "_" -f 1 | cut -d "-" -f 2`;
+  sesid=`echo ${warp} | cut -d "/" -f 7 | cut -d "_" -f 2 | cut -d "-" -f 2`;
+  warpSSTToGroupTemplate=`find ${OutDir}/ -name "${projectName}Template_sub-${subid}_template*Warp.nii.gz" -not -name "*Inverse*"`;
+  affSSTToGroupTemplate=`find ${OutDir}/ -name "${projectName}Template_sub-${subid}_template*Affine.mat" -not -name "*Inverse*"`;
+  affSesToSST=`find ${InDir}/ -name "sub-${subid}_ses-${sesid}_desc-preproc_T1w_padscale*Affine.txt"`; #!!!!!!!
   antsApplyTransforms \
    -d 3 \
    -e 0 \
-   -o [${OutDir}/sub-${bblid}_ses-${sesid}_Normalizedto${projectName}TemplateCompositeWarp.nii.gz, 1] \
+   -o [${OutDir}/sub-${subid}_ses-${sesid}_Normalizedto${projectName}TemplateCompositeWarp.nii.gz, 1] \
    -r ${OutDir}/${projectName}Template_template0.nii.gz \
    -t ${warpSSTToGroupTemplate} \
    -t ${affSSTToGroupTemplate} \
@@ -93,11 +92,11 @@ done
 masks=`find ${OutDir} -name "*mask.nii.gz"`
 
 for mask in ${masks}; do
-  bblid=`echo ${mask} | cut -d "_" -f 1 | cut -d "-" -f 2`;
+  subid=`echo ${mask} | cut -d "_" -f 1 | cut -d "-" -f 2`;
   sesid=`echo ${mask} | cut -d "_" -f 2 | cut -d "-" -f 2`;
   masktype=`echo ${mask} | cut -d "_" -f 3`;
-  antsApplyTransforms -d 3 -e 0 -o ${OutDir}/sub-${bblid}_ses-${sesid}_${masktype}_mask_Normalizedto${projectName}Template.nii.gz \
-    -i ${mask} -t ${OutDir}/sub-${bblid}_ses-${sesid}_Normalizedto${projectName}TemplateCompositeWarp.nii.gz \
+  antsApplyTransforms -d 3 -e 0 -o ${OutDir}/sub-${subid}_ses-${sesid}_${masktype}_mask_Normalizedto${projectName}Template.nii.gz \
+    -i ${mask} -t ${OutDir}/sub-${subid}_ses-${sesid}_Normalizedto${projectName}TemplateCompositeWarp.nii.gz \
     -r ${OutDir}/${projectName}Template_template0.nii.gz;
 done
 
@@ -153,7 +152,7 @@ antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0.nii.g
   -p ${OutDir}/malfPosteriors%04d.nii.gz ${atlaslabelcall}
 
 mkdir ${OutDir}/malf
-mv ${OutDir}/malft1w* ${OutDir}/malf
+#mv ${OutDir}/malft1w* ${OutDir}/malf
 mv ${OutDir}/malfPost* ${OutDir}/malf
 mv ${OutDir}/*malf*.txt ${OutDir}/malf
 if [ ${atlases} == "whitematter" ]; then

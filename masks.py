@@ -34,7 +34,7 @@ for aseg in asegs:
     mask_img = nib.load(fmriprepdir+'/'+mask)
     mask_array = mask_img.get_fdata()
     # Dilate the mask
-    mask_array_dilated = ndimage.binary_dilation(mask_array, iterations=3).astype(mask_array.dtype)
+    mask_array_dilated = ndimage.binary_dilation(mask_array, iterations=4).astype(mask_array.dtype)
     #https://www.programcreek.com/python/example/93929/scipy.ndimage.binary_dilation
     #https://nilearn.github.io/manipulating_images/manipulating_images.html
     ### Call all area that is in the dilated mask but not in the original mask CSF (24)
@@ -105,7 +105,10 @@ for aseg in asegs:
 
 
 
-
+# There are -1's in mask_array_intersection, which means there are voxels in the aseg
+# that are not in the brain mask... in first sub for set 5 (99, 108, 89)...
+# Trying more dilation to fix this, but weird that it ever happened...
+# Dilating fixed problem
 
 
 
