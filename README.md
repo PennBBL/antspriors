@@ -2,8 +2,10 @@
 
 This image takes in the output from the anatomical stream from fMRIPrep and
 the output of ANTsSST to create a group template from the single subject templates
-provided, as well as tissue-class priors using an average of the individual sessions'
+provided, and tissue-class priors using an average of the individual sessions'
 Freesurfer segmentations (e.g., sub-SUBLABEL_ses-SESLABEL_desc-aseg_dseg.nii.gz).
+It also performs joint label fusion to get the DKT labels defined on the OASIS brains
+into the group template space.
 
 As of March 25, 2021, ANTsPriors has only been tested with the output of
 fMRIPrep v 20.0.5 and ANTsSST v 0.0.7. If the structure of the output changes
