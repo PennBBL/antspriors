@@ -23,7 +23,7 @@ Typically, Docker is used on local machines and not clusters because it requires
 root access. If you want to run the container on a cluster, follow the Singularity
 instructions.
 
-### Running ANTsSST
+### Running ANTsPriors
 Here is an example from one of Ellyn's runs:
 ```
 docker run --rm -ti -e projectName="ExtraLong" -e NumSSTs=8 -e atlases="nowhitematter" \
@@ -84,7 +84,7 @@ After Singularity is installed, pull the ANTsPriors image by running the followi
 Note that Singularity does not work on Macs, and will almost surely have to be
 installed by a system administrator on your institution's computing cluster.
 
-### Running ANTsSST
+### Running ANTsPriors
 Here is an example from one of Ellyn's runs:
 ```
 SINGULARITYENV_projectName=ExtraLong SINGULARITYENV_NumSSTs=8 SINGULARITYENV_atlases=nowhitematter singularity run --writable-tmpfs --cleanenv \
