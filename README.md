@@ -147,4 +147,4 @@ longitudinal T1w data in the BBL), see [this wiki](https://github.com/PennBBL/Ex
 2. Future directions: Set home directory in Dockerfile. Make sure number of
 ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS is working in Docker and Singularity.
 Set the PEXEC flag for `antsMultivariateTemplateConstruction2` based on the
-number of SSTs supplied (Currently manually assuming 8).
+number of SSTs supplied (currently manually assuming 8).
