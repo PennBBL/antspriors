@@ -129,7 +129,7 @@ because she got good output on her fifth try.
 to the output directory in the container (`/data/output`).
 - Line 19: Bind the labeled atlases (WARNING: Currently this directory is not publicly
 available. Ellyn is working on figuring out how best to share it, if possible.)
-- Line 20: Line 4: Specify the Singularity image file.
+- Line 20: Specify the Singularity image file.
 
 Substitute your own values for the files/directories to bind.
 
@@ -144,3 +144,7 @@ the BBL, it would be more sensible to call it `sublabel`.
 ## Notes
 1. For details on how ANTsPriors was utilized for the ExtraLong project (all
 longitudinal T1w data in the BBL), see [this wiki](https://github.com/PennBBL/ExtraLong/wiki).
+2. Future directions: Set home directory in Dockerfile. Make sure number of
+ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS is working in Docker and Singularity.
+Set the PEXEC flag for `antsMultivariateTemplateConstruction2` based on the
+number of SSTs supplied (Currently manually assuming 8).

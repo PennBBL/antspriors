@@ -1,6 +1,6 @@
-mybashrc=`find /home/ -name "*.bashrc"`
+mybashrc=`find /home/ -name "*.bashrc"` # March 29, 2021: This only works in singularity...
 echo "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1" >> ${mybashrc}
-source ${mybashrc} #February 24, 2021: Works in docker but not singularity...
+source ${mybashrc}
 
 InDir=/data/input
 OutDir=/data/output # Bind /project/ExtraLong/data/groupTemplates
@@ -100,7 +100,7 @@ for mask in ${masks}; do
     -r ${OutDir}/${projectName}Template_template0.nii.gz;
 done
 
-###### 5.) Binarize the warped masks in the group template space
+###### 5.) Clean the warped masks in the group template space
 python /scripts/cleanWarpedMasks.py
 
 ###### 6.) Average all of the tissue classication images in the group template space
