@@ -75,5 +75,8 @@ COPY cleanWarpedMasks.py /scripts/cleanWarpedMasks.py
 RUN chmod -R go+rX /data/*
 RUN chmod +x /scripts/*
 
+USER antsuser
+WORKDIR /home/antsuser
+
 # Set the entrypoint
 ENTRYPOINT /scripts/run.sh

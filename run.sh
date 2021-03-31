@@ -123,11 +123,11 @@ antsBrainExtraction.sh -d 3 -a ${OutDir}/${projectName}Template_template0.nii.gz
 # Find 101 mindboggle t1w images...
 #January 7, 2020: TEMPORARILY LIMIT TO OASIS BRAINS OVER QUALITY CONCERNS WITH OTHER IMAGES
 #^ I manually checked all OASIS brains to make sure extraction had gone alright
-if [ ${atlases} == "whitematter" ]; then
-  atlast1w=`find ${InDir}/dataverse_files/OASIS-TRT-20_volumes/* -name "t1weighted_brain.nii.gz"`;
-else
-  atlast1w=`find ${InDir}/mindboggleVsBrainCOLOR_Atlases/mindboggleHeads/* -name "OASIS-TRT*.nii.gz"`;
-fi
+#if [ ${atlases} == "whitematter" ]; then
+atlast1w=`find ${InDir}/dataverse_files/OASIS-TRT-20_volumes/* -name "t1weighted_brain.nii.gz"`;
+#else
+#  atlast1w=`find ${InDir}/mindboggleVsBrainCOLOR_Atlases/mindboggleHeads/* -name "OASIS-TRT*.nii.gz"`;
+#fi
 # Find 101 mindboggle label images
 #mindlabel=`find ${InDir}/mindboggle/dataverse_files/*volumes/* -name "labels.DKT31.manual+aseg.nii.gz"`
 
@@ -135,31 +135,41 @@ fi
 atlaslabelcall=""
 for atlas in ${atlast1w}; do
   # Find corresponding label image
-  if [ ${atlases} == "whitematter" ]; then
+  #if [ ${atlases} == "whitematter" ]; then
     atlaslabel=`dirname ${atlas}`;
     atlaslabel=${atlaslabel}/labels.DKT31.manual+aseg.nii.gz;
-  else
-    atlaslabel=`basename ${atlas}`
-    atlaslabel=$(echo "${atlaslabel}" | sed "s/.nii.gz/_DKT31.nii.gz/")
-    atlaslabel=${InDir}/mindboggleVsBrainCOLOR_Atlases/mindboggleLabels/${atlaslabel}
-  fi
+done
+antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0.nii.gz \
+  -o ${OutDir}/${projectName}Template_DKTaseg_malf -c 2 -j 8 -k 1 \
+  -x ${OutDir}/ExtraLongTemplate_BrainExtractionMask.nii.gz \
+  -p ${OutDir}/malfPosteriors_DKTaseg_%04d.nii.gz ${atlaslabelcall}
+
+atlaslabelcall=""
+for atlas in ${atlast1w}; do
+  #else
+    atlaslabel=`dirname ${atlas}`;
+    atlaslabel=${atlaslabel}/labels.DKT31.manual.nii.gz;
+    #atlaslabel=`basename ${atlas}`
+    #atlaslabel=$(echo "${atlaslabel}" | sed "s/.nii.gz/_DKT31.nii.gz/")
+    #atlaslabel=${InDir}/mindboggleVsBrainCOLOR_Atlases/mindboggleLabels/${atlaslabel}
+  #fi
   atlaslabelcall=${atlaslabelcall}"-g ${atlas} -l ${atlaslabel} ";
 done
-
 antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0.nii.gz \
-  -o ${OutDir}/${projectName}Template_malf -c 2 -j 8 -k 1 \
+  -o ${OutDir}/${projectName}Template_DKT_malf -c 2 -j 8 -k 1 \
   -x ${OutDir}/ExtraLongTemplate_BrainExtractionMask.nii.gz \
-  -p ${OutDir}/malfPosteriors%04d.nii.gz ${atlaslabelcall}
+  -p ${OutDir}/malfPosteriors_DKT_%04d.nii.gz ${atlaslabelcall}
+
 
 mkdir ${OutDir}/malf
 #mv ${OutDir}/malft1w* ${OutDir}/malf
 mv ${OutDir}/malfPost* ${OutDir}/malf
 mv ${OutDir}/*malf*.txt ${OutDir}/malf
-if [ ${atlases} == "whitematter" ]; then
-  mv ${OutDir}/*_malft1weighted_* ${OutDir}/malf
-else
-  mv ${OutDir}/*_malfOASIS-* ${OutDir}/malf
-fi
+#if [ ${atlases} == "whitematter" ]; then
+mv ${OutDir}/*_malft1weighted_* ${OutDir}/malf
+#else
+#mv ${OutDir}/*_malfOASIS-* ${OutDir}/malf
+#fi
 
 mkdir ${OutDir}/masks
 mv ${OutDir}/*mask.nii.gz ${OutDir}/masks
