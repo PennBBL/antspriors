@@ -17,7 +17,7 @@ You must [install Docker](https://docs.docker.com/get-docker/) to use the ANTsPr
 Docker image.
 
 After Docker is installed, pull the ANTsPriors image by running the following command:
-`docker pull pennbbl/antspriors:0.0.36`.
+`docker pull pennbbl/antspriors:0.0.37`.
 
 Typically, Docker is used on local machines and not clusters because it requires
 root access. If you want to run the container on a cluster, follow the Singularity
@@ -134,7 +134,7 @@ to the output directory in the container (`/data/output`).
 Substitute your own values for the files/directories to bind.
 
 ## Example Scripts
-See [this script](https://github.com/PennBBL/ExtraLong/blob/master/scripts/process/ANTsLong/submitANTsPriors_v0.0.36.py)
+See [this script](https://github.com/PennBBL/ExtraLong/blob/master/scripts/process/ANTsLong/submitANTsPriors_v0.0.37.py)
 for an example of building a launch script. `/project/ExtraLong/data/groupTemplates/subjsFromN752_set5.csv`
 contains the following columns: `bblid` and `seslabel`. `bblid` is the subject labels
 for the single subject templates that are to comprise the group template. Note
