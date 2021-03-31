@@ -44,8 +44,8 @@ docker run --rm -ti -e projectName="ExtraLong" -e NumSSTs=8 -e atlases="nowhitem
   -v /Users/butellyn/Documents/ExtraLong/data/freesurferCrossSectional/fmriprep/sub-93811:/data/input/fmriprep/sub-93811 \
   -v /Users/butellyn/Documents/ExtraLong/data/singleSubjectTemplates/antssst5/sub-93811:/data/input/antssst/sub-93811 \
   -v /Users/butellyn/Documents/ExtraLong/data/groupTemplates/antspriors:/data/output \
-  -v /Users/butellyn/Documents/ExtraLong/data/mindboggleVsBrainCOLOR_Atlases:/data/input/mindboggleVsBrainCOLOR_Atlases \
-  pennbbl/antspriors:0.0.36
+  -v /project/ExtraLong/data/mindboggle/dataverse_files:/data/input/dataverse_files \
+  pennbbl/antspriors:0.0.37
 ```
 
 - Line 1: Specify environment variables: the name of the project without any spaces
@@ -66,8 +66,8 @@ because she got good output on her fifth try.
 - Line 18: Bind the directory where you want your ANTsPriors output to end up
 (`/Users/butellyn/Documents/ExtraLong/data/groupTemplates/antspriors`)
 to the output directory in the container (`/data/output`).
-- Line 19: Bind the labeled atlases (WARNING: Currently this directory is not publicly
-available. Ellyn is working on figuring out how best to share it, if possible.)
+- Line 19: Bind the labeled atlases, which must be downloaded and unzipped from
+[here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/XCCE9Q).
 - Line 20: Specify the Docker image and version. Run `docker images` to see if you
 have the correct version pulled.
 
@@ -79,7 +79,7 @@ You must [install Singularity](https://singularity.lbl.gov/docs-installation) to
 use the ANTsPriors Singularity image.
 
 After Singularity is installed, pull the ANTsPriors image by running the following command:
-`singularity pull docker://pennbbl/antspriors:0.0.36`.
+`singularity pull docker://pennbbl/antspriors:0.0.37`.
 
 Note that Singularity does not work on Macs, and will almost surely have to be
 installed by a system administrator on your institution's computing cluster.
@@ -105,8 +105,8 @@ SINGULARITYENV_projectName=ExtraLong SINGULARITYENV_NumSSTs=8 SINGULARITYENV_atl
   -B /project/ExtraLong/data/freesurferCrossSectional/fmriprep/sub-93811:/data/input/fmriprep/sub-93811 \
   -B /project/ExtraLong/data/singleSubjectTemplates/antssst5/sub-93811:/data/input/antssst/sub-93811 \
   -B /project/ExtraLong/data/groupTemplates/antspriors:/data/output \
-  -B /project/ExtraLong/data/mindboggleVsBrainCOLOR_Atlases:/data/input/mindboggleVsBrainCOLOR_Atlases \
-  /project/ExtraLong/images/antspriors_0.0.36.sif
+  -B /project/ExtraLong/data/mindboggle/dataverse_files:/data/input/dataverse_files \
+  /project/ExtraLong/images/antspriors_0.0.37.sif
 ```
 
 - Line 1: Specify environment variables: the name of the project without any spaces
@@ -127,8 +127,8 @@ because she got good output on her fifth try.
 - Line 18: Bind the directory where you want your ANTsPriors output to end up
 (`/project/ExtraLong/data/groupTemplates/antspriors`)
 to the output directory in the container (`/data/output`).
-- Line 19: Bind the labeled atlases (WARNING: Currently this directory is not publicly
-available. Ellyn is working on figuring out how best to share it, if possible.)
+- Line 19: Bind the labeled atlases, which must be downloaded and unzipped from
+[here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/XCCE9Q).
 - Line 20: Specify the Singularity image file.
 
 Substitute your own values for the files/directories to bind.
