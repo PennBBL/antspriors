@@ -66,8 +66,11 @@ because she got good output on her fifth try.
 - Line 18: Bind the directory where you want your ANTsPriors output to end up
 (`/Users/butellyn/Documents/ExtraLong/data/groupTemplates/antspriors`)
 to the output directory in the container (`/data/output`).
-- Line 19: Bind the labeled atlases, which must be downloaded and unzipped from
-[here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/XCCE9Q).
+- Line 19: Bind the labeled atlases. The pipeline is configured to run using the
+label set including white matter labels from
+[here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/XCCE9Q),
+but the labeled images that work well with only cortical labels are not currently
+publicly available.
 - Line 20: Specify the Docker image and version. Run `docker images` to see if you
 have the correct version pulled.
 
@@ -127,8 +130,11 @@ because she got good output on her fifth try.
 - Line 18: Bind the directory where you want your ANTsPriors output to end up
 (`/project/ExtraLong/data/groupTemplates/antspriors`)
 to the output directory in the container (`/data/output`).
-- Line 19: Bind the labeled atlases, which must be downloaded and unzipped from
-[here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/XCCE9Q).
+- Line 19: Bind the labeled atlases. The pipeline is configured to run using the
+label set including white matter labels from
+[here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/XCCE9Q),
+but the labeled images that work well with only cortical labels are not currently
+publicly available.
 - Line 20: Specify the Singularity image file.
 
 Substitute your own values for the files/directories to bind.
