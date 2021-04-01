@@ -17,7 +17,7 @@ You must [install Docker](https://docs.docker.com/get-docker/) to use the ANTsPr
 Docker image.
 
 After Docker is installed, pull the ANTsPriors image by running the following command:
-`docker pull pennbbl/antspriors:0.0.37`.
+`docker pull pennbbl/antspriors:0.0.36`.
 
 Typically, Docker is used on local machines and not clusters because it requires
 root access. If you want to run the container on a cluster, follow the Singularity
@@ -44,8 +44,8 @@ docker run --rm -ti -e projectName="ExtraLong" -e NumSSTs=8 -e atlases="nowhitem
   -v /Users/butellyn/Documents/ExtraLong/data/freesurferCrossSectional/fmriprep/sub-93811:/data/input/fmriprep/sub-93811 \
   -v /Users/butellyn/Documents/ExtraLong/data/singleSubjectTemplates/antssst5/sub-93811:/data/input/antssst/sub-93811 \
   -v /Users/butellyn/Documents/ExtraLong/data/groupTemplates/antspriors:/data/output \
-  -v /project/ExtraLong/data/mindboggle/dataverse_files:/data/input/dataverse_files \
-  pennbbl/antspriors:0.0.37
+  -v /Users/butellyn/Documents/ExtraLong/data/mindboggleVsBrainCOLOR_Atlases:/data/input/mindboggleVsBrainCOLOR_Atlases \
+  pennbbl/antspriors:0.0.36
 ```
 
 - Line 1: Specify environment variables: the name of the project without any spaces
@@ -82,7 +82,7 @@ You must [install Singularity](https://singularity.lbl.gov/docs-installation) to
 use the ANTsPriors Singularity image.
 
 After Singularity is installed, pull the ANTsPriors image by running the following command:
-`singularity pull docker://pennbbl/antspriors:0.0.37`.
+`singularity pull docker://pennbbl/antspriors:0.0.36`.
 
 Note that Singularity does not work on Macs, and will almost surely have to be
 installed by a system administrator on your institution's computing cluster.
@@ -108,8 +108,8 @@ SINGULARITYENV_projectName=ExtraLong SINGULARITYENV_NumSSTs=8 SINGULARITYENV_atl
   -B /project/ExtraLong/data/freesurferCrossSectional/fmriprep/sub-93811:/data/input/fmriprep/sub-93811 \
   -B /project/ExtraLong/data/singleSubjectTemplates/antssst5/sub-93811:/data/input/antssst/sub-93811 \
   -B /project/ExtraLong/data/groupTemplates/antspriors:/data/output \
-  -B /project/ExtraLong/data/mindboggle/dataverse_files:/data/input/dataverse_files \
-  /project/ExtraLong/images/antspriors_0.0.37.sif
+  -B /project/ExtraLong/data/mindboggleVsBrainCOLOR_Atlases:/data/input/mindboggleVsBrainCOLOR_Atlases \
+  /project/ExtraLong/images/antspriors_0.0.36.sif
 ```
 
 - Line 1: Specify environment variables: the name of the project without any spaces
@@ -140,7 +140,7 @@ publicly available.
 Substitute your own values for the files/directories to bind.
 
 ## Example Scripts
-See [this script](https://github.com/PennBBL/ExtraLong/blob/master/scripts/process/ANTsLong/submitANTsPriors_v0.0.37.py)
+See [this script](https://github.com/PennBBL/ExtraLong/blob/master/scripts/process/ANTsLong/submitANTsPriors_v0.0.36.py)
 for an example of building a launch script. `/project/ExtraLong/data/groupTemplates/subjsFromN752_set5.csv`
 contains the following columns: `bblid` and `seslabel`. `bblid` is the subject labels
 for the single subject templates that are to comprise the group template. Note
