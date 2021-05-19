@@ -169,3 +169,5 @@ was not within the mask. This is mysterious, because there shouldn't be any voxe
 outside of the original mask in any segmentation. This is an fMRIPrep v 20.0.5 problem.
 To avoid this, all voxels outside of the original mask in the aseg image can be
 zero'ed out.
+8. Create a user within the container in the Dockerfile that has its own bashrc.
+9. Fix ANTs seed.
