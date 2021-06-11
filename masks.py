@@ -1,58 +1,73 @@
-### This script creates gray matter, white matter and CSF masks for each of the
-### input aseg dseg images.
-###
-### Ellyn Butler
+###############################################################################
+### masks.py: This script creates gray matter, white matter, and
+###           CSF masks from each of the input aseg dseg images.
+### Maintainers: Ellyn Butler, Katja Zoner
 ### November 12, 2020 - March 16, 2021
+###############################################################################
 
-import nibabel as nib
+import os
+import glob
 import numpy as np
 import pandas as pd
-import os
+import nibabel as nib
 from copy import deepcopy
-#from scipy import binary_dilation
 from scipy import ndimage
 
-# List the available aseg images
-subjs = os.listdir('/data/input/fmriprep')
-asegs = []
-for subj in subjs:
-    for ses in os.listdir('/data/input/fmriprep/'+subj):
-        for file in os.listdir('/data/input/fmriprep/'+subj+'/'+ses+'/anat'):
-            if 'desc-aseg' in file:
-                asegs.append('/data/input/fmriprep/'+subj+'/'+ses+'/anat/'+file)
+# Path to fMRIPrep input directory
+inDir= '/data/input'
+# Path to output dir
+outDir= '/data/output'
 
-# Read in tissue classes
-tissue_df = pd.read_csv('/data/input/tissueClasses.csv')
+# Get list of fmriprep aseg files per subject/session
+aseg_files = glob.glob(inDir + '/fmriprep/sub-*/ses-*/anat/*desc-aseg*.nii.gz')
 
-# Loop over asegs, and create GM, WM and CSF images
-for aseg in asegs:
-    aseg_img = nib.load(aseg)
-    aseg_gmcort = aseg_img.get_fdata()
+# Read in tissueClasses.csv. This csv maps freesurfer aseg tissue labels
+# to the 6 tissue classes used in Atropos segmentation.
+# (CorticalGM, CorticalWM, CSF, DeepGM, Brainstem, Cerebellum).
+tissue_df = pd.read_csv(inDir + '/tissueClasses.csv')
+
+# Loop over aseg images, and create GM, WM and CSF images
+for aseg_file in aseg_files:
+    # Load image data via nibabel
+    aseg_img = nib.load(aseg_file)
+    aseg = aseg_img.get_fdata()
+
     # Get the corresponding mask
-    fmriprepdir = os.path.dirname(aseg)
-    mask = [file for file in os.listdir(fmriprepdir) if '_desc-brain_mask.nii.gz' in file and 'MNI' not in file][0]
-    mask_img = nib.load(fmriprepdir+'/'+mask)
-    mask_array = mask_img.get_fdata()
-    # Dilate the mask
-    mask_array_dilated = ndimage.binary_dilation(mask_array, iterations=4).astype(mask_array.dtype)
+    fmriprep_dir = os.path.dirname(aseg_file)
+    mask_file = [file for file in glob.glob(fmriprep_dir + '/*desc-brain_mask.nii.gz') if 'MNI' not in file][0]
+    mask_img = nib.load(mask_file)
+    mask = mask_img.get_fdata()
+
+    # Dilate the mask to include external CSF
+    # TODO: How much to dilate? Should this be 2 or 4 iterations?
+    dilated_mask = ndimage.binary_dilation(mask, iterations=4).astype(mask.dtype)
     #https://www.programcreek.com/python/example/93929/scipy.ndimage.binary_dilation
     #https://nilearn.github.io/manipulating_images/manipulating_images.html
-    ### Call all area that is in the dilated mask but not in the original mask CSF (24)
-    # 1.) Get the voxels that are in mask_array_dilated but not in the aseg image
-    aseg_binary = deepcopy(aseg_gmcort)
+
+    # Binarize the aseg image.
+    aseg_binary = deepcopy(aseg)
     aseg_binary[aseg_binary > 0] = 1
-    mask_array_intersection = mask_array_dilated - aseg_binary
-    # 2.) Multiply the intersection by 24 (the value of CSF in freesurfer's aseg image)
-    mask_array_csf = mask_array_intersection*24
-    # 3.) Add the intersection to the aseg image
-    aseg_gmcort_old = deepcopy(aseg_gmcort)
-    aseg_gmcort = aseg_gmcort + mask_array_csf
-    # Copy gm_cort for all the other tissue classes
-    aseg_wmcort = deepcopy(aseg_gmcort)
-    aseg_csf = deepcopy(aseg_gmcort)
-    aseg_gmdeep = deepcopy(aseg_gmcort)
-    aseg_bstem = deepcopy(aseg_gmcort)
-    aseg_cereb = deepcopy(aseg_gmcort)
+
+    # Locate external csf --> voxels that are in dilated mask but not in the aseg image.
+    external_csf_mask = dilated_mask - aseg_binary
+
+    # Multiply the external csf binary mask by 24 (CSF value in FreeSurfer aseg), to
+    # label voxels in the dilated mask but not in the original mask as CSF (24).
+    external_csf_mask = external_csf_mask*24
+
+    # Add the external csf labels to the aseg image.
+    # NOTE: Before adding external CSF: np.count_nonzero(aseg==24) --> 959
+    # NOTE: After adding external CSF: np.count_nonzero(aseg==24) --> 409059
+    aseg = aseg + external_csf_mask
+    
+    # For each tissue class, initialze tissue mask using aseg.
+    aseg_gmcort = deepcopy(aseg)
+    aseg_wmcort = deepcopy(aseg)
+    aseg_csf = deepcopy(aseg)
+    aseg_gmdeep = deepcopy(aseg)
+    aseg_bstem = deepcopy(aseg)
+    aseg_cereb = deepcopy(aseg)
+
     # Change the values in aseg (with exterior CSF) to their tissue classes
     for i in tissue_df.Number:
         aseg_gmcort[aseg_gmcort == i] = tissue_df[tissue_df['Number'] == i].GMCortical.values[0]
@@ -61,18 +76,23 @@ for aseg in asegs:
         aseg_gmdeep[aseg_gmdeep == i] = tissue_df[tissue_df['Number'] == i].GMDeep.values[0]
         aseg_bstem[aseg_bstem == i] = tissue_df[tissue_df['Number'] == i].Brainstem.values[0]
         aseg_cereb[aseg_cereb == i] = tissue_df[tissue_df['Number'] == i].Cerebellum.values[0]
+
     if np.array_equal(np.unique(aseg_gmcort), np.array([0, 1])):
         print('All values in the aseg image have successfully been converted to 0 or 1')
     else:
         print('Oh no! There is a value in one of your aseg images that is not in tissueClasses.csv')
         break
+
     gmcort_img = nib.Nifti1Image(aseg_gmcort, affine=aseg_img.affine)
     wmcort_img = nib.Nifti1Image(aseg_wmcort, affine=aseg_img.affine)
     csf_img = nib.Nifti1Image(aseg_csf, affine=aseg_img.affine)
     gmdeep_img = nib.Nifti1Image(aseg_gmdeep, affine=aseg_img.affine)
     bstem_img = nib.Nifti1Image(aseg_bstem, affine=aseg_img.affine)
     cereb_img = nib.Nifti1Image(aseg_cereb, affine=aseg_img.affine)
-    aseg_filename = os.path.basename(aseg)
+
+    aseg_filename = os.path.basename(aseg_file)
+
+    # Export tissue masks to .nii.gz files
     gmcort_img.to_filename('/data/output/'+aseg_filename.replace('desc-aseg_dseg', 'GMCortical_mask'))
     wmcort_img.to_filename('/data/output/'+aseg_filename.replace('desc-aseg_dseg', 'WMCortical_mask'))
     csf_img.to_filename('/data/output/'+aseg_filename.replace('desc-aseg_dseg', 'CSF_mask'))
@@ -92,23 +112,10 @@ for aseg in asegs:
 #np.sum(mask_array_dilated) #1721507.0
 #np.sum(mask_array) #1522108.0... so the mask is bigger than the aseg labels
 
-# Export
-#aseg_gmcort_binary_old = nib.Nifti1Image(aseg_gmcort_binary_old, affine=aseg_img.affine)
-#aseg_gmcort_binary = nib.Nifti1Image(aseg_gmcort_binary, affine=aseg_img.affine)
-#mask_array_dilated = nib.Nifti1Image(mask_array_dilated, affine=aseg_img.affine)
-#mask_array = nib.Nifti1Image(mask_array, affine=aseg_img.affine)
-
-#aseg_gmcort_binary_old.to_filename('/data/output/aseg_gmcort_binary_old.nii.gz')
-#aseg_gmcort_binary.to_filename('/data/output/aseg_gmcort_binary.nii.gz')
-#mask_array_dilated.to_filename('/data/output/mask_array_dilated.nii.gz')
-#mask_array.to_filename('/data/output/mask_array.nii.gz')
-
-
-
 # There are -1's in mask_array_intersection, which means there are voxels in the aseg
 # that are not in the brain mask... in first sub for set 5 (99, 108, 89)...
 # Trying more dilation to fix this, but weird that it ever happened...
-# Dilating fixed problem
+# Dilating more (4 iterations) fixed problem.
 
 
 
