@@ -1,48 +1,56 @@
+#!/bin/bash
+
+## To input directory bind:
+#   - ANTsSST output dir for each subject going into group template (need warp and SST)
+#   - fMRIPrep output dir for each subject going into group template (need aseg img)
+#   - Atlases for joint label fusion
+
+## To output dir bind:
+#   - /path/to/project/data/groupTemplates
+
+InDir=/data/input
+OutDir=/data/output 
+
+# TODO: different method for setting this env var
 mybashrc=`find /home/ -name "*.bashrc"`
 echo "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1" >> ${mybashrc}
 source ${mybashrc} #February 24, 2021: Works in docker but not singularity...
 
-InDir=/data/input
-OutDir=/data/output # Bind /project/ExtraLong/data/groupTemplates
-# The input directory will contain all of the files, straight up
+###############################################################################
+##########  1. For each timepoint, create and pad 6 tissue masks.   ###########
+###############################################################################
 
-# Input needed from antssst (double check ANTs documentation):
-# 1) Warp from T1w space (output of fMRIPrep) to SST space (to get GM/WM/CSF labels into SST space, and ultimately group template space):
-# /project/ExtraLong/data/singleSubjectTemplates/antssst/sub-87563/ses-PNC1/sub-87563_ses-PNC1_desc-preproc_T1w1Warp.nii.gz
-# 2) SST: /project/ExtraLong/data/singleSubjectTemplates/antssst/sub-87563/sub-87563_template0.nii.gz
-
-# Input needed from fmriprep:
-# 1) Segmentation from freesurfer, in the same space as sub-100088_ses-CONTE1_desc-preproc_T1w.nii.gz
-# /project/ExtraLong/data/freesurferCrossSectional/fmriprep/sub-100088/ses-CONTE1/anat/sub-100088_ses-CONTE1_desc-aseg_dseg.nii.gz
-# ^ The type of tissue will need to be determined for each label in this image (i.e., GM, WM, CSF)
-# 2) ?
-
-###### 0.) Check if a reference template is given, if not, make it MNI
-#if [[ -z "${REFTMP}" ]]; then
-#  REFTMP="MNI-1x1x1Head.nii.gz"
-#fi
-
-###### 1.) Create tissue classification images for each segmentation
-#https://github.com/ANTsX/ANTs/blob/master/Scripts/antsCookTemplatePriors.sh - old way
+# 1. Generate tissue masks for each of the 6 tissue types.
+#### This script takes the sub-*_ses-*_desc-aseg_dseg.nii.gz images from
+#### fMRIPrep as input, and uses the label mapping defined in tissueClasses.csv
+#### to output 6 tissue masks (GMCortical, WMCortical, CSF, GMDeep, Brainstem, 
+#### and Cerebellum) per timepoint.
 python /scripts/masks.py
 
-# Pad the tissue classification images such that they are in the same space as
-# the padded T1w images
+# Old way of generating tissues masks!
+# https://github.com/ANTsX/ANTs/blob/master/Scripts/antsCookTemplatePriors.sh 
+
+# Pad the tissue masks so that they're in the same space as the padded T1w images.
 masks=`find ${OutDir}/* -name "*mask*.nii.gz"`
 for mask in ${masks}; do
   ImageMath 3 ${mask} PadImage ${mask} 25;
 done
 
+###############################################################################
+############  2. Create group template from the selected SSTs.   ##############
+###############################################################################
 
-###### 2.) Create a group template from the SSTs
+# Make csv of SSTs to pass to group template construction script.
 ssts=`find ${InDir} -name "sub*template0.nii.gz"`
 for image in ${ssts}; do echo "${image}" >> ${OutDir}/tmp_subjlist.csv ; done
 
-REFTMP="MNI-1x1x1Head" #Can make this an argument to the container later
+# Specify reference template. 
+REFTMP="MNI-1x1x1Head" # TODO: make this an argument to the container
 
+# Pad reference template.
 ImageMath 3 ${OutDir}/${REFTMP}_pad.nii.gz PadImage ${InDir}/templates/${REFTMP}.nii.gz 25
 
-# Get the dimensions of the padded MNI template
+# Get the dimensions of the padded reference template.
 voxdim=`PrintHeader ${OutDir}/${REFTMP}_pad.nii.gz | grep "Voxel Spacing" | cut -d "[" -f 2 | cut -d "]" -f 1 | sed -r 's/,//g'`
 min=`python /scripts/minMax.py ${voxdim} --min`
 imgdim1=`PrintHeader ${OutDir}/${REFTMP}_pad.nii.gz | grep " dim\[1\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
@@ -50,28 +58,42 @@ imgdim2=`PrintHeader ${OutDir}/${REFTMP}_pad.nii.gz | grep " dim\[2\]" | cut -d 
 imgdim3=`PrintHeader ${OutDir}/${REFTMP}_pad.nii.gz | grep " dim\[3\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
 max=`python /scripts/minMax.py ${imgdim1} ${imgdim2} ${imgdim3}`
 
-# Generate the flags to specify the smoothing and shrinkage parameters
+# Calculate smoothing and shrinkage parameters for template construction.
 iterinfo=`/scripts/minc-toolkit-extras/ants_generate_iterations.py --min ${min} --max ${max}`
+
+# Parse output to create flags for antsMultivariateTemplateConstruction2.sh
 iterinfo=`echo ${iterinfo} | sed -e 's/--convergence\+/-q/g' | sed -e 's/--shrink-factors\+/-f/g' | sed -e 's/--smoothing-sigmas\+/-s/g'`
 iterinfo=`echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 's/\[\+//g'`
 
+# Group template construction using antsMultivariateTemplateConstruction2.sh
 antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" \
   -n 0 -i 5 -c 2 -j ${NumSSTs} -g .15 -m CC[2] ${iterinfo} \
   -z ${OutDir}/MNI-1x1x1Head_pad.nii.gz ${OutDir}/tmp_subjlist.csv
 #-a 0 -A 2
-# -j should be equal to the number of SSTs going into the template
 # February 28, 2021 Syn step might be too aggressive
 
 rm ${OutDir}/tmp_subjlist.csv
 
-###### 3.) Concatenate the transforms from T1w-space to group template space
+###############################################################################
+######  3. Create composite warp from session space to group space for   ######
+######     each timepoint that went into the GT.                         ######
+###############################################################################
+
 sesToSSTwarps=`find ${InDir} -name "*padscale*Warp.nii.gz" -not -name "*Inverse*"`
+
 for warp in ${sesToSSTwarps}; do
   subid=`echo ${warp} | cut -d "/" -f 7 | cut -d "_" -f 1 | cut -d "-" -f 2`;
   sesid=`echo ${warp} | cut -d "/" -f 7 | cut -d "_" -f 2 | cut -d "-" -f 2`;
   warpSSTToGroupTemplate=`find ${OutDir}/ -name "${projectName}Template_sub-${subid}_template*Warp.nii.gz" -not -name "*Inverse*"`;
   affSSTToGroupTemplate=`find ${OutDir}/ -name "${projectName}Template_sub-${subid}_template*Affine.mat" -not -name "*Inverse*"`;
   affSesToSST=`find ${InDir}/ -name "sub-${subid}_ses-${sesid}_desc-preproc_T1w_padscale*Affine.txt"`; #!!!!!!!
+  
+  # Combine transforms from T1w space to SST space to group template space into 
+  # the composite warp. Note, transform order matters!! List in reverse order.
+  # 1. SST-to-GT warp
+  # 2. SST-to-GT affine
+  # 3. Native-to-SST warp
+  # 4. Native-to-SST affine
   antsApplyTransforms \
    -d 3 \
    -e 0 \
@@ -82,47 +104,51 @@ for warp in ${sesToSSTwarps}; do
    -t ${warp} \
    -t ${affSesToSST};
 done
-# First Transform >>> Output from line 23: warp from SST to group template
-# Second Transform >>> Output from line 23: affine for SST to group
-# Third Transform >>> Output from antssst: warp from native to SST
-# Fourth Transform >>> Output from antssst: affine from native to SST
 
+###############################################################################
+#### 4. Convert tissue masks from each timepoint to group template space,  ####
+####    using the composite warps, then average to generate tissue priors. ####
+###############################################################################
 
-###### 4.) Warp the tissue classification images in T1w-space to the group template space
 masks=`find ${OutDir} -name "*mask.nii.gz"`
 
 for mask in ${masks}; do
   subid=`echo ${mask} | cut -d "_" -f 1 | cut -d "-" -f 2`;
   sesid=`echo ${mask} | cut -d "_" -f 2 | cut -d "-" -f 2`;
   masktype=`echo ${mask} | cut -d "_" -f 3`;
+
+  # Apply composite warp to take tissue mask from T1w space to GT space.
   antsApplyTransforms -d 3 -e 0 -o ${OutDir}/sub-${subid}_ses-${sesid}_${masktype}_mask_Normalizedto${projectName}Template.nii.gz \
     -i ${mask} -t ${OutDir}/sub-${subid}_ses-${sesid}_Normalizedto${projectName}TemplateCompositeWarp.nii.gz \
     -r ${OutDir}/${projectName}Template_template0.nii.gz;
 done
 
-###### 5.) Binarize the warped masks in the group template space
+# Clean warped masks by converting all values < 0.2 to 0.
 python /scripts/cleanWarpedMasks.py
 
-###### 6.) Average all of the tissue classication images in the group template space
-###### to create tissue class priors (divide by sum of the voxels if they are all
-###### non-zero, and do nothing otherwise)
+# Create tissue priors by averaging all tissue classification image in GT space.
+# (divide by sum of the voxels if they are all non-zero, and do nothing otherwise)
+# Script outputs 6 tissue priors total, e.g. 'CSF_NormalizedtoExtraLongTemplate_prior.nii.gz'
 python /scripts/scaleMasks.py
 
-###### 7.) Joint label fusion on the group template
+###############################################################################
+####  5. Run joint label fusion to map DKT labels onto the group template. ####
+###############################################################################
 
-# Extract the group template brain
+# OLD: Extract the group template brain.
 #antsRegistrationSyN.sh -d 3 -f ${OutDir}/${projectName}Template_template0.nii.gz \
 #  -m ${InDir}/MICCAI2012-Multi-Atlas-Challenge-Data/T_template0.nii.gz \
 #  -o ${OutDir}/MICCAITemplate_to_${projectName}Template
 
+# Skull-strip the group template.
 antsBrainExtraction.sh -d 3 -a ${OutDir}/${projectName}Template_template0.nii.gz \
   -e ${InDir}/OASIS_PAC/T_template0.nii.gz \
   -m ${InDir}/OASIS_PAC/T_template0_BrainCerebellumProbabilityMask.nii.gz \
   -o ${OutDir}/${projectName}Template_
 
 # Find 101 mindboggle t1w images...
-#January 7, 2020: TEMPORARILY LIMIT TO OASIS BRAINS OVER QUALITY CONCERNS WITH OTHER IMAGES
-#^ I manually checked all OASIS brains to make sure extraction had gone alright
+# January 7, 2020: TEMPORARILY LIMIT TO OASIS BRAINS OVER QUALITY CONCERNS WITH OTHER IMAGES
+# ^ I manually checked all OASIS brains to make sure extraction had gone alright
 if [ ${atlases} == "whitematter" ]; then
   atlast1w=`find ${InDir}/dataverse_files/OASIS-TRT-20_volumes/* -name "t1weighted_brain.nii.gz"`;
 else
@@ -146,32 +172,43 @@ for atlas in ${atlast1w}; do
   atlaslabelcall=${atlaslabelcall}"-g ${atlas} -l ${atlaslabel} ";
 done
 
+# Run JFL to map DKT labels onto group template
 antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0.nii.gz \
   -o ${OutDir}/${projectName}Template_malf -c 2 -j 8 -k 1 \
   -x ${OutDir}/ExtraLongTemplate_BrainExtractionMask.nii.gz \
   -p ${OutDir}/malfPosteriors%04d.nii.gz ${atlaslabelcall}
 
+###############################################################################
+#################  6. Organize output directory and cleanup. ##################
+###############################################################################
+
+# Make subdir for joint label fusion output
 mkdir ${OutDir}/malf
-#mv ${OutDir}/malft1w* ${OutDir}/malf
 mv ${OutDir}/malfPost* ${OutDir}/malf
 mv ${OutDir}/*malf*.txt ${OutDir}/malf
+
 if [ ${atlases} == "whitematter" ]; then
   mv ${OutDir}/*_malft1weighted_* ${OutDir}/malf
 else
   mv ${OutDir}/*_malfOASIS-* ${OutDir}/malf
 fi
 
+# Make subdir for tissue mask output
 mkdir ${OutDir}/masks
 mv ${OutDir}/*mask.nii.gz ${OutDir}/masks
 
+# Make subdir for tissue priors
 mkdir ${OutDir}/priors
 mv ${OutDir}/*prior.nii.gz ${OutDir}/priors
 
+# Make subdir for ????????
 mkdir ${OutDir}/Normalizedto${projectName}Template
 mv ${OutDir}/*Normalizedto${projectName}Template.nii.gz ${OutDir}/Normalizedto${projectName}Template
 
+# Make subdir for single subject templates
 mkdir ${OutDir}/SST
 mv ${OutDir}/*sub-* ${OutDir}/SST
 
+# Make subdir for jobscripts
 mkdir ${OutDir}/jobs
 mv ${OutDir}/job*.sh ${OutDir}/jobs
