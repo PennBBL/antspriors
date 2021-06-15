@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1
+
 ## To input directory bind:
 #   - ANTsSST output dir for each subject going into group template (need warp and SST)
 #   - fMRIPrep output dir for each subject going into group template (need aseg img)
@@ -10,11 +12,6 @@
 
 InDir=/data/input
 OutDir=/data/output 
-
-# TODO: different method for setting this env var
-mybashrc=`find /home/ -name "*.bashrc"`
-echo "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1" >> ${mybashrc}
-source ${mybashrc} #February 24, 2021: Works in docker but not singularity...
 
 ###############################################################################
 ##########  1. For each timepoint, create and pad 6 tissue masks.   ###########
@@ -141,6 +138,7 @@ python /scripts/scaleMasks.py
 #  -o ${OutDir}/MICCAITemplate_to_${projectName}Template
 
 # Skull-strip the group template.
+# (correct term?? actually just getting brain mask for JFL)
 antsBrainExtraction.sh -d 3 -a ${OutDir}/${projectName}Template_template0.nii.gz \
   -e ${InDir}/OASIS_PAC/T_template0.nii.gz \
   -m ${InDir}/OASIS_PAC/T_template0_BrainCerebellumProbabilityMask.nii.gz \
@@ -172,7 +170,7 @@ for atlas in ${atlast1w}; do
   atlaslabelcall=${atlaslabelcall}"-g ${atlas} -l ${atlaslabel} ";
 done
 
-# Run JFL to map DKT labels onto group template
+# Run JLF to map DKT labels onto group template
 antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0.nii.gz \
   -o ${OutDir}/${projectName}Template_malf -c 2 -j 8 -k 1 \
   -x ${OutDir}/ExtraLongTemplate_BrainExtractionMask.nii.gz \
