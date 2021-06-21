@@ -76,14 +76,14 @@ rm ${OutDir}/tmp_subjlist.csv
 ######     each timepoint that went into the GT.                         ######
 ###############################################################################
 
-Native-to-SST-warps=`find ${InDir} -name "*padscale*Warp.nii.gz" -not -name "*Inverse*"`
+Native_to_SST_warps=`find ${InDir} -name "*padscale*Warp.nii.gz" -not -name "*Inverse*"`
 
-for Native-to-SST-warp in ${sesToSSTwarps}; do
-  subid=`echo ${Native-to-SST-warp} | cut -d "/" -f 7 | cut -d "_" -f 1 | cut -d "-" -f 2`;
-  sesid=`echo ${Native-to-SST-warp} | cut -d "/" -f 7 | cut -d "_" -f 2 | cut -d "-" -f 2`;
-  SST-to-GT-warp=`find ${OutDir}/ -name "${projectName}Template_sub-${subid}_template*Warp.nii.gz" -not -name "*Inverse*"`;
-  SST-to-GT-affine=`find ${OutDir}/ -name "${projectName}Template_sub-${subid}_template*Affine.mat" -not -name "*Inverse*"`;
-  Native-to-SST-affine=`find ${InDir}/ -name "sub-${subid}_ses-${sesid}_desc-preproc_T1w_padscale*Affine.txt"`; #!!!!!!!
+for Native_to_SST_warp in ${sesToSSTwarps}; do
+  subid=`echo ${Native_to_SST_warp} | cut -d "/" -f 7 | cut -d "_" -f 1 | cut -d "-" -f 2`;
+  sesid=`echo ${Native_to_SST_warp} | cut -d "/" -f 7 | cut -d "_" -f 2 | cut -d "-" -f 2`;
+  SST_to_GT_warp=`find ${OutDir}/ -name "${projectName}Template_sub-${subid}_template*Warp.nii.gz" -not -name "*Inverse*"`;
+  SST_to_GT_affine=`find ${OutDir}/ -name "${projectName}Template_sub-${subid}_template*Affine.mat" -not -name "*Inverse*"`;
+  Native_to_SST_affine=`find ${InDir}/ -name "sub-${subid}_ses-${sesid}_desc-preproc_T1w_padscale*Affine.txt"`; #!!!!!!!
   
   # Combine transforms from T1w space to SST space to group template space into 
   # the composite warp. Note, transform order matters!! List in reverse order.
@@ -96,10 +96,10 @@ for Native-to-SST-warp in ${sesToSSTwarps}; do
    -e 0 \
    -o [${OutDir}/sub-${subid}_ses-${sesid}_Normalizedto${projectName}TemplateCompositeWarp.nii.gz, 1] \
    -r ${OutDir}/${projectName}Template_template0.nii.gz \
-   -t ${SST-to-GT-warp} \
-   -t ${SST-to-GT-affine} \
-   -t ${Native-to-SST-warp} \
-   -t ${Native-to-SST-affine};
+   -t ${SST_to_GT_warp} \
+   -t ${SST_to_GT_affine} \
+   -t ${Native_to_SST_warp} \
+   -t ${Native_to_SST_affine};
 done
 
 ###############################################################################
