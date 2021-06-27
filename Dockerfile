@@ -78,5 +78,5 @@ RUN chmod +x /scripts/*
 USER antsuser
 WORKDIR /home/antsuser
 
-# Set the entrypoint
-ENTRYPOINT /scripts/run.sh
+# Set the entrypoint using exec format
+ENTRYPOINT ["/scripts/run.sh"]
