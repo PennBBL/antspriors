@@ -12,7 +12,6 @@ usage () {
       -h  | --help        Print this message and exit.
       -v  | --version     Print version and exit.
       -p  | --project     Project name for template naming.
-      -n  | --num-ssts    Number SSTs going into group template.
       -s  | --seed        Random seed for ANTs registration. 
       -l  | --all-labels  Use non-cortical/whitematter labels. Default: False.
 
@@ -45,15 +44,6 @@ while (( "$#" )); do
         exit 1
       fi
       ;;
-    -n | --num-ssts)
-      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
-        numSSTs=$2
-        shift 2
-      else
-        echo "$0: Error: Argument for $1 is missing" >&2
-        exit 1
-      fi
-      ;;
     -s | --seed)
       if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
         seed=$2
@@ -74,12 +64,6 @@ while (( "$#" )); do
   esac
 done
 
-# Check if required args were given, 
-if [[ -z "$numSSTs" ]]; then
-  echo "$0: Error: Missing required argument: --num-ssts <NUMBER OF SSTS>" >&2
-  exit 1
-fi
-
 # Default: use cortical labels only.
 if [[ -z "$useAllLabels" ]]; then
   useAllLabels=0
@@ -99,16 +83,6 @@ fi
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1
 export ANTS_RANDOM_SEED=$seed # TODO: also allow setting seed via flag to container
 
-echo project: $projectName
-echo numSSTS: $numSSTs
-if [[ "$useAllLabels"]]; then
-  echo using all labels
-else
-  echo using cortical labels only
-fi
-echo all-labels: $useAllLabels
-echo seed: $ANTS_RANDOM_SEED
-exit 0
 ## To input directory bind:
 #   - ANTsSST output dir for each subject going into group template (need warp and SST)
 #   - fMRIPrep output dir for each subject going into group template (need aseg img)
@@ -147,6 +121,9 @@ done
 # Make csv of SSTs to pass to group template construction script.
 ssts=`find ${InDir} -name "sub*template0.nii.gz"`
 for image in ${ssts}; do echo "${image}" >> ${OutDir}/tmp_subjlist.csv ; done
+
+# Get number of SSTs going into group template.
+numSSTs=`echo $ssts | wc -l`
 
 # Specify reference template. 
 REFTMP="MNI-1x1x1Head" # TODO: make this an argument to the container
