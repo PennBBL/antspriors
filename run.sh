@@ -1,6 +1,7 @@
 #!/bin/bash
 
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1
+export ANTS_RANDOM_SEED=1 # TODO: also allow setting seed via flag to container
 
 ## To input directory bind:
 #   - ANTsSST output dir for each subject going into group template (need warp and SST)
