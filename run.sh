@@ -3,7 +3,7 @@
 #############################################################
 #################### PARSE CMD LINE ARGS ####################
 #############################################################
-#VERSION=0.0.
+VERSION=0.1.0
 
 usage () {
     cat <<- HELP_MESSAGE
@@ -26,7 +26,6 @@ if [[ $# -eq 0 ]] ; then
 fi
 
 # Parse cmd line options
-#PARAMS=""
 while (( "$#" )); do
   case "$1" in
     -h | --help)
@@ -72,18 +71,11 @@ while (( "$#" )); do
       echo "$0: Error: Unsupported flag $1" >&2
       exit 1
       ;;
-    #*) # parse positional arguments
-    #  PARAMS="$PARAMS $1"
-    #  shift
-    #  ;;
   esac
 done
 
-# set positional arguments in their proper place
-#eval set -- "$PARAMS"
-
 # Check if required args were given, 
-elif [[ -z "$numSSTs" ]]; then
+if [[ -z "$numSSTs" ]]; then
   echo "$0: Error: Missing required argument: --num-ssts <NUMBER OF SSTS>" >&2
   exit 1
 fi
@@ -100,13 +92,23 @@ fi
 
 # Default: if no project name given, use "Group".
 if [[ -z "$projectName" ]]; then
-  projectName=
+  projectName=Group
 fi
 ###############################################################################
 
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1
 export ANTS_RANDOM_SEED=$seed # TODO: also allow setting seed via flag to container
 
+echo project: $projectName
+echo numSSTS: $numSSTs
+if [[ "$useAllLabels"]]; then
+  echo using all labels
+else
+  echo using cortical labels only
+fi
+echo all-labels: $useAllLabels
+echo seed: $ANTS_RANDOM_SEED
+exit 0
 ## To input directory bind:
 #   - ANTsSST output dir for each subject going into group template (need warp and SST)
 #   - fMRIPrep output dir for each subject going into group template (need aseg img)
