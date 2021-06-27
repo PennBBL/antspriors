@@ -1,7 +1,111 @@
 #!/bin/bash
 
+#############################################################
+#################### PARSE CMD LINE ARGS ####################
+#############################################################
+#VERSION=0.0.
+
+usage () {
+    cat <<- HELP_MESSAGE
+      usage:  $0 [--help] [--version] [--column <SUBJECT COLUMN>]
+              --subject <SUBJECT LABEL> --session <SESSION LABEL>
+      -h  | --help        Print this message and exit.
+      -v  | --version     Print version and exit.
+      -p  | --project     Project name for template naming.
+      -n  | --num-ssts    Number SSTs going into group template.
+      -s  | --seed        Random seed for ANTs registration. 
+      -l  | --all-labels  Use non-cortical/whitematter labels. Default: False.
+
+HELP_MESSAGE
+}
+
+# Display usage message if no args are given
+if [[ $# -eq 0 ]] ; then
+  usage
+  exit 1
+fi
+
+# Parse cmd line options
+#PARAMS=""
+while (( "$#" )); do
+  case "$1" in
+    -h | --help)
+        usage
+        exit 0
+      ;;
+    -v | --version)
+        echo $VERSION
+        exit 0
+      ;;
+    -p | --project)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        projectName=$2
+        shift 2
+      else
+        echo "$0: Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -n | --num-ssts)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        numSSTs=$2
+        shift 2
+      else
+        echo "$0: Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -s | --seed)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        seed=$2
+        shift 2
+      else
+        echo "$0: Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -l | --all-labels)
+      useAllLabels=1
+      shift
+      ;;
+    -*|--*=) # unsupported flags
+      echo "$0: Error: Unsupported flag $1" >&2
+      exit 1
+      ;;
+    #*) # parse positional arguments
+    #  PARAMS="$PARAMS $1"
+    #  shift
+    #  ;;
+  esac
+done
+
+# set positional arguments in their proper place
+#eval set -- "$PARAMS"
+
+# Check if required args were given, 
+elif [[ -z "$numSSTs" ]]; then
+  echo "$0: Error: Missing required argument: --num-ssts <NUMBER OF SSTS>" >&2
+  exit 1
+fi
+
+# Default: use cortical labels only.
+if [[ -z "$useAllLabels" ]]; then
+  useAllLabels=0
+fi
+
+# Default: set random seed to 1.
+if [[ -z "$seed" ]]; then
+  seed=1
+fi
+
+# Default: if no project name given, use "Group".
+if [[ -z "$projectName" ]]; then
+  projectName=
+fi
+###############################################################################
+
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1
-export ANTS_RANDOM_SEED=1 # TODO: also allow setting seed via flag to container
+export ANTS_RANDOM_SEED=$seed # TODO: also allow setting seed via flag to container
 
 ## To input directory bind:
 #   - ANTsSST output dir for each subject going into group template (need warp and SST)
@@ -65,7 +169,7 @@ iterinfo=`echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 
 
 # Group template construction using antsMultivariateTemplateConstruction2.sh
 antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Template_" \
-  -n 0 -i 5 -c 2 -j ${NumSSTs} -g .15 -m CC[2] ${iterinfo} \
+  -n 0 -i 5 -c 2 -j ${numSSTs} -g .15 -m CC[2] ${iterinfo} \
   -z ${OutDir}/MNI-1x1x1Head_pad.nii.gz ${OutDir}/tmp_subjlist.csv
 #-a 0 -A 2
 # February 28, 2021 Syn step might be too aggressive
@@ -138,16 +242,12 @@ python /scripts/scaleMasks.py
 #  -m ${InDir}/MICCAI2012-Multi-Atlas-Challenge-Data/T_template0.nii.gz \
 #  -o ${OutDir}/MICCAITemplate_to_${projectName}Template
 
-# Skull-strip the group template.
-# (correct term?? actually just getting brain mask for JFL)
+# Skull-strip the group template to get brain mask.
 antsBrainExtraction.sh -d 3 -a ${OutDir}/${projectName}Template_template0.nii.gz \
   -e ${InDir}/OASIS_PAC/T_template0.nii.gz \
   -m ${InDir}/OASIS_PAC/T_template0_BrainCerebellumProbabilityMask.nii.gz \
   -o ${OutDir}/${projectName}Template_
 
-# Find 101 mindboggle t1w images...
-# January 7, 2020: TEMPORARILY LIMIT TO OASIS BRAINS OVER QUALITY CONCERNS WITH OTHER IMAGES
-# ^ I manually checked all OASIS brains to make sure extraction had gone alright
 if [ ${atlases} == "whitematter" ]; then
   atlast1w=`find ${InDir}/dataverse_files/OASIS-TRT-20_volumes/* -name "t1weighted_brain.nii.gz"`;
 else
