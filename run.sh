@@ -18,8 +18,8 @@ VERSION=0.1.0
 
 usage () {
     cat <<- HELP_MESSAGE
-      usage:  $0 [--help] [--version] [--column <SUBJECT COLUMN>]
-              --subject <SUBJECT LABEL> --session <SESSION LABEL>
+      usage:  $0 [--help] [--version] [--project <PROJECT NAME>]
+              [--seed <RANDOM SEED>] [--all-labels]
       -h  | --help        Print this message and exit.
       -v  | --version     Print version and exit.
       -p  | --project     Project name for template naming.
