@@ -1,8 +1,19 @@
 #!/bin/bash
 
-#############################################################
-#################### PARSE CMD LINE ARGS ####################
-#############################################################
+## To input directory bind:
+#   - ANTsSST output dir for each subject going into group template (need warp and SST)
+#   - fMRIPrep output dir for each subject going into group template (need aseg img)
+#   - OASIS atlases directory for joint label fusion
+
+## To output dir bind:
+#   - /path/to/project/data/groupTemplates
+
+InDir=/data/input
+OutDir=/data/output 
+
+###############################################################################
+#######################      0. Parse Cmd Line Args      ######################
+###############################################################################
 VERSION=0.1.0
 
 usage () {
@@ -64,9 +75,9 @@ while (( "$#" )); do
   esac
 done
 
-# Default: use cortical labels only.
-if [[ -z "$useAllLabels" ]]; then
-  useAllLabels=0
+# Default: if no project name given, use "Group".
+if [[ -z "$projectName" ]]; then
+  projectName=Group
 fi
 
 # Default: set random seed to 1.
@@ -74,25 +85,9 @@ if [[ -z "$seed" ]]; then
   seed=1
 fi
 
-# Default: if no project name given, use "Group".
-if [[ -z "$projectName" ]]; then
-  projectName=Group
-fi
-###############################################################################
-
+# Set env vars for ANTs
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1
-export ANTS_RANDOM_SEED=$seed # TODO: also allow setting seed via flag to container
-
-## To input directory bind:
-#   - ANTsSST output dir for each subject going into group template (need warp and SST)
-#   - fMRIPrep output dir for each subject going into group template (need aseg img)
-#   - Atlases for joint label fusion
-
-## To output dir bind:
-#   - /path/to/project/data/groupTemplates
-
-InDir=/data/input
-OutDir=/data/output 
+export ANTS_RANDOM_SEED=$seed 
 
 ###############################################################################
 ##########  1. For each timepoint, create and pad 6 tissue masks.   ###########
@@ -156,8 +151,8 @@ antsMultivariateTemplateConstruction2.sh -d 3 -o "${OutDir}/${projectName}Templa
 rm ${OutDir}/tmp_subjlist.csv
 
 ###############################################################################
-######  3. Create composite warp from session space to group space for   ######
-######     each timepoint that went into the GT.                         ######
+######  3. Create composite warp from session space to group space       ######
+######     for each timepoint that went into the GT.                     ######
 ###############################################################################
 
 Native_to_SST_warps=`find ${InDir} -name "*padscale*Warp.nii.gz" -not -name "*Inverse*"`
@@ -227,34 +222,32 @@ antsBrainExtraction.sh -d 3 -a ${OutDir}/${projectName}Template_template0.nii.gz
   -m ${InDir}/OASIS_PAC/T_template0_BrainCerebellumProbabilityMask.nii.gz \
   -o ${OutDir}/${projectName}Template_
 
-if [ ${atlases} == "whitematter" ]; then
-  atlast1w=`find ${InDir}/dataverse_files/OASIS-TRT-20_volumes/* -name "t1weighted_brain.nii.gz"`;
-else
-  atlast1w=`find ${InDir}/mindboggleVsBrainCOLOR_Atlases/mindboggleHeads/* -name "OASIS-TRT*.nii.gz"`;
-fi
-# Find 101 mindboggle label images
-#mindlabel=`find ${InDir}/mindboggle/dataverse_files/*volumes/* -name "labels.DKT31.manual+aseg.nii.gz"`
-
 # Construct call to antsJointLabelFusion.sh
-atlaslabelcall=""
-for atlas in ${atlast1w}; do
-  # Find corresponding label image
-  if [ ${atlases} == "whitematter" ]; then
-    atlaslabel=`dirname ${atlas}`;
-    atlaslabel=${atlaslabel}/labels.DKT31.manual+aseg.nii.gz;
+atlas_args=""
+
+# Loop through each atlas dir in OASIS dir
+find ${InDir}/OASIS-TRT-20_volumes/OASIS-TRT* -type d | while read atlas_dir; do
+  # Get T1w brain
+  brain="${atlas_dir}/t1weighted_brain.nii.gz"
+  
+  # Get corresponding labels if using all labels (cort, wm, non-cort).
+  if [[ ${useAllLabels} ]]; then
+    labels=${atlas_dir}/labels.DKT31.manual+aseg.nii.gz;
+  
+  # Get corresponding labels if using only cortical labels. (Default)
   else
-    atlaslabel=`basename ${atlas}`
-    atlaslabel=$(echo "${atlaslabel}" | sed "s/.nii.gz/_DKT31.nii.gz/")
-    atlaslabel=${InDir}/mindboggleVsBrainCOLOR_Atlases/mindboggleLabels/${atlaslabel}
+    labels=${atlas_dir}/labels.DKT31.manual.nii.gz;
   fi
-  atlaslabelcall=${atlaslabelcall}"-g ${atlas} -l ${atlaslabel} ";
+
+  # Append current atlas and label to argument string
+  atlas_args=${atlas_args}"-g ${brain} -l ${labels} ";
 done
 
 # Run JLF to map DKT labels onto group template
 antsJointLabelFusion.sh -d 3 -t ${OutDir}/${projectName}Template_template0.nii.gz \
   -o ${OutDir}/${projectName}Template_malf -c 2 -j 8 -k 1 \
   -x ${OutDir}/ExtraLongTemplate_BrainExtractionMask.nii.gz \
-  -p ${OutDir}/malfPosteriors%04d.nii.gz ${atlaslabelcall}
+  -p ${OutDir}/malfPosteriors%04d.nii.gz ${atlas_args}
 
 ###############################################################################
 #################  6. Organize output directory and cleanup. ##################
@@ -265,7 +258,7 @@ mkdir ${OutDir}/malf
 mv ${OutDir}/malfPost* ${OutDir}/malf
 mv ${OutDir}/*malf*.txt ${OutDir}/malf
 
-if [ ${atlases} == "whitematter" ]; then
+if [[ ${useAllLabels} ]]; then
   mv ${OutDir}/*_malft1weighted_* ${OutDir}/malf
 else
   mv ${OutDir}/*_malfOASIS-* ${OutDir}/malf
