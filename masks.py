@@ -32,6 +32,7 @@ for aseg_file in aseg_files:
     aseg_img = nib.load(aseg_file)
     aseg = aseg_img.get_fdata()
 
+    # TODO: experiment with using dialated/smoothed mask from ANTsSST?
     # Get the corresponding mask
     fmriprep_dir = os.path.dirname(aseg_file)
     mask_file = [file for file in glob.glob(fmriprep_dir + '/*desc-brain_mask.nii.gz') if 'MNI' not in file][0]
@@ -39,7 +40,6 @@ for aseg_file in aseg_files:
     mask = mask_img.get_fdata()
 
     # Dilate the mask to include external CSF
-    # TODO: How much to dilate? Should this be 2 or 4 iterations?
     dilated_mask = ndimage.binary_dilation(mask, iterations=4).astype(mask.dtype)
     #https://www.programcreek.com/python/example/93929/scipy.ndimage.binary_dilation
     #https://nilearn.github.io/manipulating_images/manipulating_images.html
@@ -93,12 +93,12 @@ for aseg_file in aseg_files:
     aseg_filename = os.path.basename(aseg_file)
 
     # Export tissue masks to .nii.gz files
-    gmcort_img.to_filename('/data/output/'+aseg_filename.replace('desc-aseg_dseg', 'GMCortical_mask'))
-    wmcort_img.to_filename('/data/output/'+aseg_filename.replace('desc-aseg_dseg', 'WMCortical_mask'))
-    csf_img.to_filename('/data/output/'+aseg_filename.replace('desc-aseg_dseg', 'CSF_mask'))
-    gmdeep_img.to_filename('/data/output/'+aseg_filename.replace('desc-aseg_dseg', 'GMDeep_mask'))
-    bstem_img.to_filename('/data/output/'+aseg_filename.replace('desc-aseg_dseg', 'Brainstem_mask'))
-    cereb_img.to_filename('/data/output/'+aseg_filename.replace('desc-aseg_dseg', 'Cerebellum_mask'))
+    gmcort_img.to_filename('/data/output/masks'+aseg_filename.replace('desc-aseg_dseg', 'GMCortical-mask'))
+    wmcort_img.to_filename('/data/output/masks'+aseg_filename.replace('desc-aseg_dseg', 'WMCortical-mask'))
+    csf_img.to_filename('/data/output/masks'+aseg_filename.replace('desc-aseg_dseg', 'CSF-mask'))
+    gmdeep_img.to_filename('/data/output/masks'+aseg_filename.replace('desc-aseg_dseg', 'GMDeep-mask'))
+    bstem_img.to_filename('/data/output/masks'+aseg_filename.replace('desc-aseg_dseg', 'Brainstem-mask'))
+    cereb_img.to_filename('/data/output/masks'+aseg_filename.replace('desc-aseg_dseg', 'Cerebellum-mask'))
 
 # Sanity check: After adding the external CSF, are the number of non-zero voxels
 # the same as in the dilated mask? If so, then none of the original labels were
