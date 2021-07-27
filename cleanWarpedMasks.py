@@ -1,4 +1,4 @@
-### This script binarizes the tissue class masks that have been warped to the
+### This script cleans the tissue class masks that have been warped to the
 ### group template space
 ###
 ### Ellyn Butler
@@ -11,7 +11,7 @@ import pandas as pd
 import nibabel as nib
 from copy import deepcopy
 
-# Path to output dir
+# Path to masks dir
 maskDir= '/data/output/masks/'
 
 # Get list of all warped tissue masks
