@@ -6,42 +6,58 @@
 ### November 17, 2020 - February 4, 2021
 
 
-import nibabel as nib
+import os
+import glob
 import numpy as np
 import pandas as pd
-import os
+import nibabel as nib
 from copy import deepcopy
 from numpy import inf
 
-# List the masks in group template space
-files = os.listdir('/data/output/')
+# Path to masks dir
+maskDir= '/data/output/masks/'
 
-tissues_dict = {'Brainstem':[], 'CSF':[], 'Cerebellum':[], 'GMCortical':[],
-    'GMDeep':[], 'WMCortical':[]}
+tissues_dict = {
+    'Brainstem':[], 'CSF':[], 'Cerebellum':[], 
+    'GMCortical':[], 'GMDeep':[], 'WMCortical':[]}
 
-# Declare an empty array
-masks = [file for file in files if 'Brainstem_clean_Normalizedto' in file]
-mask = [file for file in masks if 'sub-' in file][0]
-img = nib.load('/data/output/'+mask)
+# Declare an empty array in shape of tissue mask images.
+maskFile = glob.glob(maskDir + "*" + tissue + "-clean_WarpedTo*Template.nii.gz")[0]
+img = nib.load(maskFile)
 img_array = img.get_fdata()
-tissue_sum = np.zeros(img_array.shape)
+sum_all_tissues = np.zeros(img_array.shape)
 
+# For each tissue type, sum mask arrays and story in dict.
 for tissue in tissues_dict.keys():
-    masks = [file for file in files if tissue+'_clean_Normalizedto' in file]
-    projectName = masks[0].split('_')[4].split('.')[0].replace('Normalizedto', '').replace('Template', '')
-    masks_array = []
+    
+    # Get all cleaned, normalized masks of current tissue type
+    masks = glob.glob(maskDir + "*" + tissue + "-clean_WarpedTo*Template.nii.gz")
+        
+    mask_arrays = []
     for mask in masks:
-        img = nib.load('/data/output/'+mask)
+        img = nib.load(mask)
         img_array = img.get_fdata()
-        masks_array.append(img_array)
-    tissues_dict[tissue] = np.sum(masks_array, axis=0)
-    tissue_sum = tissue_sum + tissues_dict[tissue]
+        mask_arrays.append(img_array)
+    
+    # Sum values across all masks of given tissue type.
+    tissues_dict[tissue] = np.sum(mask_arrays, axis=0)
 
+    # Add sum for current tissue type to overall tissues sum
+    sum_all_tissues = sum_all_tissues + tissues_dict[tissue]
+
+# For each tissue type, get weighted (scaled?) avg by 
+# dividing sum for given tissue type by sum of all tissues @ each voxel.
 for tissue in tissues_dict.keys():
-    tissues_dict[tissue] = np.true_divide(tissues_dict[tissue], tissue_sum)
+
+    # Get weighted average mask for tissue type
+    tissues_dict[tissue] = np.true_divide(tissues_dict[tissue], sum_all_tissues)
+
+    # Convert all NaN to 0
     tissues_dict[tissue][np.isnan(tissues_dict[tissue])] = 0
-    mask_average = nib.Nifti1Image(tissues_dict[tissue], affine=img.affine)
-    mask_average.to_filename('/data/output/'+tissue+'_Normalizedto'+projectName+'Template_prior.nii.gz')
+
+    # Output average tissue mask to priors subdirectory.
+    avg_mask = nib.Nifti1Image(tissues_dict[tissue], affine=img.affine)
+    avg_mask.to_filename('/data/output/priors/' + projectName + 'Template_' + tissue + '-prior.nii.gz')
 
 
 #This should just be 0s and 1s:
