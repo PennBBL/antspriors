@@ -153,10 +153,7 @@ longitudinal T1w data in the BBL), see [this wiki](https://github.com/PennBBL/Ex
 
 ## Future Directions
 1. Set home directory in Dockerfile.
-2. Make sure number of ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS is working in Docker
-and Singularity.
-3. Set the PEXEC flag for `antsMultivariateTemplateConstruction2` based on the
-number of SSTs supplied (currently manually assuming 8).
+
 4. Use the `pad` function in c3d to prevent the template from drifting (Phil Cook).
 5. Use the [publicly available version of the mindboggle images](https://www.synapse.org/#!Synapse:syn18486916)
 that Phil Cook shared via box and configure paths and file names accordingly.
@@ -169,5 +166,3 @@ was not within the mask. This is mysterious, because there shouldn't be any voxe
 outside of the original mask in any segmentation. This is an fMRIPrep v 20.0.5 problem.
 To avoid this, all voxels outside of the original mask in the aseg image can be
 zero'ed out.
-8. Create a user within the container in the Dockerfile that has its own bashrc.
-9. Fix ANTs seed.
