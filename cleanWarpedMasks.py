@@ -12,10 +12,10 @@ import nibabel as nib
 from copy import deepcopy
 
 # Path to masks dir
-maskDir= '/data/output/masks/'
+maskDir= "/data/output/masks/"
 
 # Get list of all warped tissue masks
-warped_masks = glob.glob(maskDir + '*WarpedTo*Template.nii.gz')
+warped_masks = glob.glob(maskDir + "*WarpedTo*Template.nii.gz")
 
 # Clean each mask by converting values <= 0.2 to 0.0
 for mask in warped_masks:
@@ -24,4 +24,4 @@ for mask in warped_masks:
     #mask_data[mask_data > .5] = 1.0
     mask_data[mask_data <= .2] = 0.0
     bin_mask_img = nib.Nifti1Image(mask_data, affine=mask_img.affine)
-    bin_mask_img.to_filename(mask.replace('mask', 'clean'))
+    bin_mask_img.to_filename(mask.replace('-mask_', '-clean_'))
