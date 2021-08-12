@@ -5,7 +5,6 @@
 ### November 12, 2020 - March 16, 2021
 ###############################################################################
 
-# Hi Katja!
 import os
 import glob
 import numpy as np
@@ -94,12 +93,12 @@ for aseg_file in aseg_files:
     aseg_filename = os.path.basename(aseg_file)
 
     # Export tissue masks to .nii.gz files
-    gmcort_img.to_filename('/data/output/masks'+aseg_filename.replace('desc-aseg_dseg', 'GMCortical-mask'))
-    wmcort_img.to_filename('/data/output/masks'+aseg_filename.replace('desc-aseg_dseg', 'WMCortical-mask'))
-    csf_img.to_filename('/data/output/masks'+aseg_filename.replace('desc-aseg_dseg', 'CSF-mask'))
-    gmdeep_img.to_filename('/data/output/masks'+aseg_filename.replace('desc-aseg_dseg', 'GMDeep-mask'))
-    bstem_img.to_filename('/data/output/masks'+aseg_filename.replace('desc-aseg_dseg', 'Brainstem-mask'))
-    cereb_img.to_filename('/data/output/masks'+aseg_filename.replace('desc-aseg_dseg', 'Cerebellum-mask'))
+    gmcort_img.to_filename('/data/output/masks/'+aseg_filename.replace('desc-aseg_dseg', 'GMCortical-mask'))
+    wmcort_img.to_filename('/data/output/masks/'+aseg_filename.replace('desc-aseg_dseg', 'WMCortical-mask'))
+    csf_img.to_filename('/data/output/masks/'+aseg_filename.replace('desc-aseg_dseg', 'CSF-mask'))
+    gmdeep_img.to_filename('/data/output/masks/'+aseg_filename.replace('desc-aseg_dseg', 'GMDeep-mask'))
+    bstem_img.to_filename('/data/output/masks/'+aseg_filename.replace('desc-aseg_dseg', 'Brainstem-mask'))
+    cereb_img.to_filename('/data/output/masks/'+aseg_filename.replace('desc-aseg_dseg', 'Cerebellum-mask'))
 
 # Sanity check: After adding the external CSF, are the number of non-zero voxels
 # the same as in the dilated mask? If so, then none of the original labels were
