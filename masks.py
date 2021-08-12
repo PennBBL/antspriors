@@ -5,6 +5,7 @@
 ### November 12, 2020 - March 16, 2021
 ###############################################################################
 
+# Hi Katja!
 import os
 import glob
 import numpy as np
@@ -59,7 +60,7 @@ for aseg_file in aseg_files:
     # NOTE: Before adding external CSF: np.count_nonzero(aseg==24) --> 959
     # NOTE: After adding external CSF: np.count_nonzero(aseg==24) --> 409059
     aseg = aseg + external_csf_mask
-    
+
     # For each tissue class, initialze tissue mask using aseg.
     aseg_gmcort = deepcopy(aseg)
     aseg_wmcort = deepcopy(aseg)
