@@ -339,6 +339,13 @@ if [[ ${runJLF} ]]; then
 
 fi
 
+# Move DKT-labeled SST to main output dir and rename to match DKT-labeled T1w image
+mv ${OutDir}/malf/${projectName}Template_malf
+
+# Move DKT-labeled SST to main output dir and rename to match other DKT-labeled images.
+GT_labels=${OutDir}/${projectName}Template_DKT.nii.gz
+mv ${OutDir}/malf/${projectName}Template_malfLabels.nii.gz ${SST_labels}
+
 ###############################################################################
 #################  6. Organize output directory and cleanup. ##################
 ###############################################################################
