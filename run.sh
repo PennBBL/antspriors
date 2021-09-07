@@ -15,7 +15,7 @@ tmpdir="${OutDir}/tmp"
 mkdir -p ${tmpdir}
 
 ###############################################################################
-#######################      0. Parse Cmd Line Args      ######################
+########################      Parse Cmd Line Args      ########################
 ###############################################################################
 VERSION=0.1.0
 
@@ -32,6 +32,13 @@ usage () {
 
 HELP_MESSAGE
 }
+
+# Set default cmd line args
+projectName=Group
+seed=1
+runJLF=""
+useAllLabels=""
+
 
 # Parse cmd line options
 while (( "$#" )); do
@@ -77,23 +84,45 @@ while (( "$#" )); do
   esac
 done
 
-# Default: if no project name given, use "Group".
-if [[ -z "$projectName" ]]; then
-  projectName=Group
-fi
-
-# Default: set random seed to 1.
-if [[ -z "$seed" ]]; then
-  seed=1
-fi
-
 # Set env vars for ANTs
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1
 export ANTS_RANDOM_SEED=$seed 
 
 ###############################################################################
+######################      Set Up Error Handling!      #######################
+###############################################################################
+
+set -euo pipefail
+trap 'exit' EXIT
+trap 'control_c' SIGINT
+
+exit(){
+  err=$?
+  if [ $err -eq 0 ]; then
+    cleanup
+    echo "$0: ANTsPriors finished successfully!"
+  else
+    echo "$0: ${PROGNAME:-}: ${1:-"Exiting with error code $err"}" 1>&2
+    cleanup
+  fi
+}
+
+cleanup() {
+  echo -e "\nRunning cleanup ..."
+  rm -rf $tmpdir
+  echo "Done."
+}
+
+control_c() 
+{
+  echo -en "\n\n*** User pressed CTRL + C ***\n\n"
+}
+
+###############################################################################
 ##########  1. For each timepoint, create and pad 6 tissue masks.   ###########
 ###############################################################################
+echo -e "\nCreating tissue masks....\n"
+PROGNAME="masks.py"
 
 # 1. Generate tissue masks for each of the 6 tissue types.
 #### This script takes the sub-*_ses-*_desc-aseg_dseg.nii.gz images from
@@ -115,6 +144,8 @@ done
 ###############################################################################
 ############  2. Create group template from the selected SSTs.   ##############
 ###############################################################################
+echo -e "\nRunning group template creation....\n"
+PROGNAME="antsMultivariateTemplateConstruction2"
 
 # Make csv of SSTs to pass to group template construction script.
 SSTs=`find ${InDir} -name "sub*template0.nii.gz"`
@@ -196,6 +227,8 @@ GT=${OutDir}/${projectName}_template0.nii.gz
 ######  3. Create composite warp from session space to group space       ######
 ######     for each timepoint that went into the GT.                     ######
 ###############################################################################
+echo -e "\nCreating native to group template composite warps....\n"
+PROGNAME="antsApplyTransforms"
 
 # Make subdir for native-to-GT composite warps
 mkdir ${OutDir}/Native-to-GT
@@ -237,6 +270,8 @@ done
 #### 4. Convert tissue masks from each timepoint to group template space,  ####
 ####    using the composite warps, then average to generate tissue priors. ####
 ###############################################################################
+echo -e "\nTransforming tissue masks from native to group template space....\n"
+PROGNAME="antsApplyTransforms"
 
 #masks=`find ${OutDir} -name "*mask.nii.gz"`
 
@@ -263,6 +298,8 @@ done
 # Clean warped masks by converting all values < 0.2 to 0.
 python /scripts/cleanWarpedMasks.py
 
+echo -e "\nMaking tissue priors....\n"
+PROGNAME="scaleMasks.py"
 # Create tissue priors by averaging all tissue classification image in GT space.
 # (divide by sum of the voxels if they are all non-zero, and do nothing otherwise)
 # Script outputs 6 tissue priors total, e.g. 'CSF_NormalizedtoExtraLongTemplate_prior.nii.gz'
@@ -272,6 +309,8 @@ python /scripts/scaleMasks.py
 ###############################################################################
 ####  5. Run joint label fusion to map DKT labels onto the group template. ####
 ###############################################################################
+echo -e "\nRunning brain extraction on the group template....\n"
+PROGNAME="antsBrainExtraction"
 
 BrainExtractionTemplate="${InDir}/OASIS_PAC/T_template0.nii.gz"
 BrainExtractionProbMask="${InDir}/OASIS_PAC/T_template0_BrainCerebellumProbabilityMask.nii.gz"
@@ -285,6 +324,8 @@ antsBrainExtraction.sh -d 3 \
 
 # Optionally, run JLF on the SST.
 if [[ ${runJLF} ]]; then
+  echo -e "\nRunning joint label fusion on the group template....\n"
+  PROGNAME="antsJointLabelFusion"
 
   # Construct atlas arguments for call to antsJointLabelFusion.sh
   # by looping through each atlas dir in OASIS dir to get brain and labels.
@@ -360,5 +401,3 @@ mv ${OutDir}/malf/${projectName}Template_malfLabels.nii.gz ${SST_labels}
 # else
 #   mv ${OutDir}/*_malfOASIS-* ${OutDir}/malf
 # fi
-
-rm -rf ${tmpdir}
