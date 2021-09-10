@@ -56,8 +56,8 @@ RUN mkdir /data/input
 RUN mkdir /data/output
 #RUN mkdir /data/input/dataverse_files
 #RUN mkdir /data/input/templates
-RUN mkdir /data/input/fmriprep
-RUN mkdir /data/input/antssst
+#RUN mkdir /data/input/fmriprep
+#RUN mkdir /data/input/antssst
 RUN mkdir /data/input/atlases
 RUN mkdir /scripts
 

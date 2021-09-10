@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# ANTsPriors: Group Template and Tissue Prior Creation
+# Maintainer: Katja Zoner
+# Updated:    09/10/2021
+
 ## To input directory bind:
 #   - ANTsSST output dir for each subject going into group template (need warp and SST)
 #   - fMRIPrep output dir for each subject going into group template (need aseg img)
@@ -8,16 +12,11 @@
 ## To output dir bind:
 #   - /path/to/project/data/groupTemplates
 
-InDir=/data/input
-OutDir=/data/output 
-
-tmpdir="${OutDir}/tmp"
-mkdir -p ${tmpdir}
+VERSION=0.1.0
 
 ###############################################################################
 ########################      Parse Cmd Line Args      ########################
 ###############################################################################
-VERSION=0.1.0
 
 usage () {
     cat <<- HELP_MESSAGE
@@ -38,7 +37,6 @@ projectName=Group
 seed=1
 runJLF=""
 useAllLabels=""
-
 
 # Parse cmd line options
 while (( "$#" )); do
@@ -88,9 +86,14 @@ done
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1
 export ANTS_RANDOM_SEED=$seed 
 
+tmpdir="/data/output/tmp"
+mkdir -p ${tmpdir}
+
 ###############################################################################
 ######################      Set Up Error Handling!      #######################
 ###############################################################################
+InDir=/data/input
+OutDir=/data/output 
 
 set -euo pipefail
 trap 'exit' EXIT
@@ -147,8 +150,11 @@ done
 echo -e "\nRunning group template creation....\n"
 PROGNAME="antsMultivariateTemplateConstruction2"
 
+# Get list of subjects going into GT
+subjects=`ls ${OutDir}/subjects`
+
 # Make csv of SSTs to pass to group template construction script.
-SSTs=`find ${InDir} -name "sub*template0.nii.gz"`
+SSTs=`find ${OutDir}/subjects -name "sub*template0.nii.gz"`
 for image in ${SSTs}; do echo "${image}" >> ${tmpdir}/sst_list.csv ; done
 
 # Get number of SSTs going into group template.
@@ -193,35 +199,40 @@ antsMultivariateTemplateConstruction2.sh -d 3 \
 ######  3. Group Template construction cleanup / reorganization.         ######                   ######
 ###############################################################################
 
-# Make subdir for single subject templates
-mkdir -p ${OutDir}/SST-to-GT
-mv ${OutDir}/*sub-* ${OutDir}/SST-to-GT
-
 # Rename GT and transform files to include project name.
 mv ${OutDir}/template0.nii.gz ${OutDir}/${projectName}_template0.nii.gz
 mv ${OutDir}/templatewarplog.txt ${OutDir}/${projectName}_templatewarplog.txt
 mv ${OutDir}/template0GenericAffine.mat ${OutDir}/${projectName}_template0GenericAffine.mat
 mv ${OutDir}/template0warp.nii.gz ${OutDir}/${projectName}_template0warp.nii.gz
 
-# Rename SST-to-GT warps and affines
-files=`find ${OutDir}/SST-to-GT -name "sub-*"`
-for f in $files; do
-  name=`echo $f | sed "s/template[0-9]*/to${projectName}Template_/"`
-  mv $f $name
-done
-
-# Rename SSTs warped to group template
-files=`find ${OutDir}/SST-to-GT -name "template0*"`
-for f in $files;do
-  sub=`basename $f | cut -d _ -f 1 | sed "s/template0//"`
-  mv $f ${sub}_WarpedTo${projectName}Template.nii.gz
-done
-
 # Make subdir for jobscripts
 mkdir -p ${OutDir}/jobs
 mv ${OutDir}/job*.sh ${OutDir}/jobs
 
+# Save path to group template
 GT=${OutDir}/${projectName}_template0.nii.gz
+
+# For each sub, rename output files and move into subject-level dir
+for sub in $subjects; do
+
+  # Get subject-level output dir
+  SubDir=${OutDir}/subjects/${sub}
+
+  # Rename and move SST-to-GT warps and affine
+  files=`find ${OutDir} -maxdepth 1 -name "${sub}_*"`
+  for f in $files; do
+    name=`basename $f | sed "s/template[0-9]*/to${projectName}Template_/"`
+    mv $f ${SubDir}/$name
+  done
+
+  # Rename and move SSTs warped to group template
+  files=`find ${OutDir} -maxdepth 1 -name "template0${sub}*"`
+  for f in $files; do
+    name=${sub}_WarpedTo${projectName}Template.nii.gz
+    mv $f ${SubDir}/${name}
+  done
+
+done
 
 ###############################################################################
 ######  3. Create composite warp from session space to group space       ######
@@ -230,10 +241,8 @@ GT=${OutDir}/${projectName}_template0.nii.gz
 echo -e "\nCreating native to group template composite warps....\n"
 PROGNAME="antsApplyTransforms"
 
-# Make subdir for native-to-GT composite warps
-mkdir ${OutDir}/Native-to-GT
-
-Native_to_SST_warps=`find ${InDir} -name "*toSST_Warp.nii.gz" -not -name "*Inverse*"`
+# Get list of Native-to-SST warps for all subjects/sessions
+Native_to_SST_warps=`find ${OutDir}/subjects -name "*toSST_Warp.nii.gz"`
 
 # For each timepoint, create composite warp from Native to GT space.
 for Native_to_SST_warp in ${Native_to_SST_warps}; do
@@ -241,13 +250,14 @@ for Native_to_SST_warp in ${Native_to_SST_warps}; do
   sub=`basename ${Native_to_SST_warp} | cut -d "_" -f 1`
   ses=`basename ${Native_to_SST_warp} | cut -d "_" -f 2`
 
-  # TODO: Fix naming convention for antssst.
-  Native_to_SST_affine=`find ${InDir} -name "${sub}_${ses}_toSST_Affine.txt"`
-  SST_to_GT_warp=`find ${OutDir} -name "${sub}_to${projectName}Template_Warp.nii.gz" -not -name "*Inverse*"`;
-  SST_to_GT_affine=`find ${OutDir} -name "${sub}_to${projectName}Template_GenericAffine.mat"`;
+  SubDir=${OutDir}/subjects/${sub}
+
+  Native_to_SST_affine=`find ${SubDir} -name "${sub}_${ses}_toSST_Affine.txt"`
+  SST_to_GT_warp=`find ${SubDir} -name "${sub}_to${projectName}Template_Warp.nii.gz"`;
+  SST_to_GT_affine=`find ${SubDir} -name "${sub}_to${projectName}Template_GenericAffine.mat"`;
 
   # Name of composite warp being created.
-  Native_to_GT_warp="${OutDir}/Native-to-GT/${sub}_${ses}_to${projectName}Template_CompositeWarp.nii.gz"
+  Native_to_GT_warp="${SubDir}/sessions/${ses}/${sub}_${ses}_to${projectName}Template_CompositeWarp.nii.gz"
   
   # Combine transforms from T1w space to SST space to group template space into 
   # the composite warp. Note, transform order matters!! List in reverse order.
@@ -273,7 +283,7 @@ done
 echo -e "\nTransforming tissue masks from native to group template space....\n"
 PROGNAME="antsApplyTransforms"
 
-#masks=`find ${OutDir} -name "*mask.nii.gz"`
+#masks=`find ${OutDir}/masks -name "*mask.nii.gz"`
 
 for mask in ${masks}; do
 
@@ -285,7 +295,8 @@ for mask in ${masks}; do
   warped_mask="${OutDir}/masks/${sub}_${ses}_${maskType}_WarpedTo${projectName}Template.nii.gz"
 
   # Composite warp to transform mask from native to GT space.
-  Native_to_GT_warp="${OutDir}/Native-to-GT/${sub}_${ses}_to${projectName}Template_CompositeWarp.nii.gz"
+  Native_to_GT_warp=`find ${OutDir}/subjects/${sub}/sessions/${ses} -name "*CompositeWarp.nii.gz"`
+  "${OutDir}/subjects/${sub}/sessions/${ses}/${sub}_${ses}_to${projectName}Template_CompositeWarp.nii.gz"
 
   # Apply composite warp to take tissue mask from native T1w space to GT space.
   antsApplyTransforms -d 3 -e 0 \
@@ -298,17 +309,18 @@ done
 # Clean warped masks by converting all values < 0.2 to 0.
 python /scripts/cleanWarpedMasks.py
 
-echo -e "\nMaking tissue priors....\n"
-PROGNAME="scaleMasks.py"
 # Create tissue priors by averaging all tissue classification image in GT space.
 # (divide by sum of the voxels if they are all non-zero, and do nothing otherwise)
 # Script outputs 6 tissue priors total, e.g. 'CSF_NormalizedtoExtraLongTemplate_prior.nii.gz'
+echo -e "\nMaking tissue priors....\n"
+PROGNAME="scaleMasks.py"
 mkdir -p ${OutDir}/priors
 python /scripts/scaleMasks.py
 
 ###############################################################################
-####  5. Run joint label fusion to map DKT labels onto the group template. ####
+#############  5. Run Ants Brain Extraction on the Group Template. ############
 ###############################################################################
+
 echo -e "\nRunning brain extraction on the group template....\n"
 PROGNAME="antsBrainExtraction"
 
@@ -321,6 +333,10 @@ antsBrainExtraction.sh -d 3 \
   -e ${BrainExtractionTemplate} \
   -m ${BrainExtractionProbMask} \
   -o ${OutDir}/${projectName}Template_
+
+###############################################################################
+####  6. Run joint label fusion to map DKT labels onto the group template. ####
+###############################################################################  
 
 # Optionally, run JLF on the SST.
 if [[ ${runJLF} ]]; then
@@ -380,24 +396,6 @@ if [[ ${runJLF} ]]; then
 
 fi
 
-# Move DKT-labeled SST to main output dir and rename to match DKT-labeled T1w image
-mv ${OutDir}/malf/${projectName}Template_malf
-
-# Move DKT-labeled SST to main output dir and rename to match other DKT-labeled images.
+# Move DKT-labeled GT to main output dir and rename to match other DKT-labeled images.
 GT_labels=${OutDir}/${projectName}Template_DKT.nii.gz
-mv ${OutDir}/malf/${projectName}Template_malfLabels.nii.gz ${SST_labels}
-
-###############################################################################
-#################  6. Organize output directory and cleanup. ##################
-###############################################################################
-
-# # Make subdir for joint label fusion output
-# mkdir ${OutDir}/malf
-# mv ${OutDir}/malfPost* ${OutDir}/malf
-# mv ${OutDir}/*malf*.txt ${OutDir}/malf
-
-# if [[ ${useAllLabels} ]]; then
-#   mv ${OutDir}/*_malft1weighted_* ${OutDir}/malf
-# else
-#   mv ${OutDir}/*_malfOASIS-* ${OutDir}/malf
-# fi
+mv ${OutDir}/malf/${projectName}Template_malfLabels.nii.gz ${GT_labels}
