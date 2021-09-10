@@ -151,7 +151,7 @@ echo -e "\nRunning group template creation....\n"
 PROGNAME="antsMultivariateTemplateConstruction2"
 
 # Get list of subjects going into GT
-subjects=`ls ${OutDir}/subjects`
+subjects=`ls ${InDir}/fmriprep`
 
 # Make csv of SSTs to pass to group template construction script.
 SSTs=`find ${OutDir}/subjects -name "sub*template0.nii.gz"`
