@@ -4,14 +4,6 @@
 # Maintainer: Katja Zoner
 # Updated:    09/10/2021
 
-## To input directory bind:
-#   - ANTsSST output dir for each subject going into group template (need warp and SST)
-#   - fMRIPrep output dir for each subject going into group template (need aseg img)
-#   - OASIS atlases directory for joint label fusion
-
-## To output dir bind:
-#   - /path/to/project/data/groupTemplates
-
 VERSION=0.1.0
 
 ###############################################################################
@@ -222,14 +214,14 @@ for sub in $subjects; do
   files=`find ${OutDir} -maxdepth 1 -name "${sub}_*"`
   for f in $files; do
     name=`basename $f | sed "s/template[0-9]*/to${projectName}Template_/"`
-    mv $f ${SubDir}/$name
+    mv $f ${tmpdir}/${sub}/$name # TODO: new, check this!!
   done
 
   # Rename and move SSTs warped to group template
   files=`find ${OutDir} -maxdepth 1 -name "template0${sub}*"`
   for f in $files; do
     name=${sub}_WarpedTo${projectName}Template.nii.gz
-    mv $f ${SubDir}/${name}
+    mv $f ${tmpdir}/${sub}/$name # TODO: new, check this!!
   done
 
 done
@@ -243,6 +235,7 @@ PROGNAME="antsApplyTransforms"
 
 # Get list of Native-to-SST warps for all subjects/sessions
 Native_to_SST_warps=`find ${OutDir}/subjects -name "*toSST_Warp.nii.gz"`
+Native_to_SST_warps=`find ${tmpdir} -name "*toSST_Warp.nii.gz"`
 
 # For each timepoint, create composite warp from Native to GT space.
 for Native_to_SST_warp in ${Native_to_SST_warps}; do
@@ -252,9 +245,14 @@ for Native_to_SST_warp in ${Native_to_SST_warps}; do
 
   SubDir=${OutDir}/subjects/${sub}
 
-  Native_to_SST_affine=`find ${SubDir} -name "${sub}_${ses}_toSST_Affine.txt"`
-  SST_to_GT_warp=`find ${SubDir} -name "${sub}_to${projectName}Template_Warp.nii.gz"`;
-  SST_to_GT_affine=`find ${SubDir} -name "${sub}_to${projectName}Template_GenericAffine.mat"`;
+  # Native_to_SST_affine=`find ${SubDir} -name "${sub}_${ses}_toSST_Affine.txt"`
+  # SST_to_GT_warp=`find ${SubDir} -name "${sub}_to${projectName}Template_Warp.nii.gz"`;
+  # SST_to_GT_affine=`find ${SubDir} -name "${sub}_to${projectName}Template_GenericAffine.mat"`;
+
+  # TODO: new version --> check this
+  Native_to_SST_affine=`find ${tmpdir} -name "${sub}_${ses}_toSST_Affine.txt"`
+  SST_to_GT_warp=`find ${tmpdir} -name "${sub}_to${projectName}Template_Warp.nii.gz"`;
+  SST_to_GT_affine=`find ${tmpdir} -name "${sub}_to${projectName}Template_GenericAffine.mat"`;
 
   # Name of composite warp being created.
   Native_to_GT_warp="${SubDir}/sessions/${ses}/${sub}_${ses}_to${projectName}Template_CompositeWarp.nii.gz"
@@ -382,7 +380,7 @@ if [[ ${runJLF} ]]; then
 
   fi
 
-  # Make malk output directory
+  # Make malf output directory
   mkdir ${OutDir}/malf
 
   # Run JLF to map DKT labels onto the group template.
