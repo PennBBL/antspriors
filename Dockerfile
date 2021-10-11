@@ -54,10 +54,7 @@ RUN pip install scipy==1.6.1
 
 RUN mkdir /data/input
 RUN mkdir /data/output
-#RUN mkdir /data/input/dataverse_files
-#RUN mkdir /data/input/templates
-#RUN mkdir /data/input/fmriprep
-#RUN mkdir /data/input/antssst
+RUN mkdir /data/input/fmriprep
 RUN mkdir /data/input/atlases
 RUN mkdir /scripts
 
@@ -66,18 +63,15 @@ COPY MNI-1x1x1Head.nii.gz /data/input/MNI-1x1x1Head.nii.gz
 COPY tissueClasses.csv /data/input/tissueClasses.csv
 
 COPY run.sh /scripts/run.sh
-COPY masks.py /scripts/masks.py
+COPY createMasks.py /scripts/createMasks.py
 COPY antsMultivariateTemplateConstruction2.sh /scripts/antsMultivariateTemplateConstruction2.sh
 COPY minMax.py /scripts/minMax.py
-COPY scaleMasks.py /scripts/scaleMasks.py
+COPY createPriors.py /scripts/createPriors.py
 COPY cleanWarpedMasks.py /scripts/cleanWarpedMasks.py
 COPY minc-toolkit-extras /scripts/minc-toolkit-extras
 
 RUN chmod -R go+rX /data/*
 RUN chmod +x /scripts/*
-
-#USER antsuser
-#WORKDIR /home/antsuser
 
 # Set the entrypoint using exec format
 ENTRYPOINT ["/scripts/run.sh"]
