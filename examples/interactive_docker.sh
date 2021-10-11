@@ -11,9 +11,9 @@ docker run -it --rm --entrypoint=/bin/bash  \
     -v /Users/kzoner/BBL/projects/ANTS/data/fmriprep/sub-114990:/data/input/fmriprep/sub-114990 \
     -v /Users/kzoner/BBL/projects/ANTS/data/fmriprep/sub-116147:/data/input/fmriprep/sub-116147 \
     -v /Users/kzoner/BBL/projects/ANTS/data/ANTsLongitudinal/0.1.0:/data/output \
-    katjz/antspriors:0.1.0 -i
+    katjz/antspriors:0.1.0 -i 
 
-# Run docker container (non-interactive)
+# Example 1: Run docker container (non-interactive)
 docker run -it --rm \
     -v /Users/kzoner/BBL/projects/ANTS/data/fmriprep/sub-85392:/data/input/fmriprep/sub-85392 \
     -v /Users/kzoner/BBL/projects/ANTS/data/fmriprep/sub-91404:/data/input/fmriprep/sub-91404 \
@@ -24,4 +24,11 @@ docker run -it --rm \
     -v /Users/kzoner/BBL/projects/ANTS/data/fmriprep/sub-114990:/data/input/fmriprep/sub-114990 \
     -v /Users/kzoner/BBL/projects/ANTS/data/fmriprep/sub-116147:/data/input/fmriprep/sub-116147 \
     -v /Users/kzoner/BBL/projects/ANTS/data/ANTsLongitudinal/0.1.0:/data/output \
-    katjz/antspriors:0.1.0 --project ExtraLong --seed 1
+    katjz/antspriors:0.1.0 --project ExtraLong --seed 1 -m 3 
+
+# Example 2: Run docker container (non-interactive)
+docker run -it --rm \
+    -v /Users/kzoner/BBL/projects/ANTS/data/ANTsLongitudinal/0.1.0:/data/output \
+    katjz/antspriors:0.1.0 --project ExtraLong --seed 1 -m 1 \
+    sub-85392 sub-91404 sub-93811 sub-100079 sub-107903 sub-108315 sub-114990 sub-116147
+    
