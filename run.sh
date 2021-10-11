@@ -7,99 +7,51 @@
 VERSION=0.1.0
 
 ###############################################################################
-########################      Parse Cmd Line Args      ########################
+##########################      Usage Function      ###########################
 ###############################################################################
-
 usage () {
     cat <<- HELP_MESSAGE
-      usage:  $0 [--help] [--version] [--project <PROJECT NAME>]
-              [--seed <RANDOM SEED>] [--all-labels]
-      -h  | --help        Print this message and exit.
-      -v  | --version     Print version and exit.
-      -p  | --project     Project name for template naming.
-      -s  | --seed        Random seed for ANTs registration. 
-      -j  | --jlf         Run JLF on Group Template. (Default: False)
-      -l  | --all-labels  Use non-cortical/whitematter labels for JLF. (Default: False)
+      usage:  $0 [--help] [--version] 
+                 [--jlf ] [--all-labels]
+                 [--project <PROJECT NAME>]
+                 [--seed <RANDOM SEED>] 
+                 [--manual-step <STEP NUM>]
+                 SUB1 SUB2 [SUB3 ...]
+      
+      positional arguments:
+        SUB |                   Subject label for subjects going into group template.
+
+      optional arguments:
+        -h  | --help            Print this message and exit.
+        -j  | --jlf             Run JLF on Group Template. (Default: False)
+        -l  | --all-labels      Use non-cortical/whitematter labels for JLF. (Default: False)
+        -m  | --manual-step     Manually identify which steps to run. 
+                                  1: group template creation, 
+                                  2: native-to-GT composite warp creation,
+                                  3: tissue prior creation,
+                                  4: brain extraction, 
+                                  5: joint label fusion
+                                Use multiple times to select multiple steps. (e.g. -m 2 -m 3)
+        -p  | --project         Project name for group template naming. (Default: "Group")
+        -s  | --seed            Random seed for ANTs registration. 
+        -v  | --version         Print version and exit.
 
 HELP_MESSAGE
 }
 
-# Set default cmd line args
-projectName=Group
-seed=1
-runJLF=""
-useAllLabels=""
-
-# Parse cmd line options
-while (( "$#" )); do
-  case "$1" in
-    -h | --help)
-        usage
-        exit 0
-      ;;
-    -v | --version)
-        echo $VERSION
-        exit 0
-      ;;
-    -p | --project)
-      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
-        projectName=$2
-        shift 2
-      else
-        echo "$0: Error: Argument for $1 is missing" >&2
-        exit 1
-      fi
-      ;;
-    -s | --seed)
-      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
-        seed=$2
-        shift 2
-      else
-        echo "$0: Error: Argument for $1 is missing" >&2
-        exit 1
-      fi
-      ;;
-    -j | --jlf)
-      runJLF=1
-      shift
-      ;; 
-    -l | --all-labels)
-      useAllLabels=1
-      shift
-      ;;
-    -*|--*=) # unsupported flags
-      echo "$0: Error: Unsupported flag $1" >&2
-      exit 1
-      ;;
-  esac
-done
-
-# Set env vars for ANTs
-export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1
-export ANTS_RANDOM_SEED=$seed 
-
-tmpdir="/data/output/tmp"
-mkdir -p ${tmpdir}
-
 ###############################################################################
-######################      Set Up Error Handling!      #######################
+###############      Error Handling and Cleanup Functions      ################
 ###############################################################################
-InDir=/data/input
-OutDir=/data/output 
-
-set -euo pipefail
-trap 'exit' EXIT
-trap 'control_c' SIGINT
-
-exit(){
+clean_exit(){
   err=$?
   if [ $err -eq 0 ]; then
-    cleanup
     echo "$0: ANTsPriors finished successfully!"
+    cleanup
   else
     echo "$0: ${PROGNAME:-}: ${1:-"Exiting with error code $err"}" 1>&2
     cleanup
   fi
+  exit $err
 }
 
 cleanup() {
@@ -113,232 +65,253 @@ control_c()
   echo -en "\n\n*** User pressed CTRL + C ***\n\n"
 }
 
-###############################################################################
-##########  1. For each timepoint, create and pad 6 tissue masks.   ###########
-###############################################################################
-echo -e "\nCreating tissue masks....\n"
-PROGNAME="masks.py"
-
-# 1. Generate tissue masks for each of the 6 tissue types.
-#### This script takes the sub-*_ses-*_desc-aseg_dseg.nii.gz images from
-#### fMRIPrep as input, and uses the label mapping defined in tissueClasses.csv
-#### to output 6 tissue masks (GMCortical, WMCortical, CSF, GMDeep, Brainstem, 
-#### and Cerebellum) per timepoint.
-mkdir -p ${OutDir}/masks
-python /scripts/masks.py
-
-# Old way of generating tissues masks!
-# https://github.com/ANTsX/ANTs/blob/master/Scripts/antsCookTemplatePriors.sh 
-
-# Pad the tissue masks so that they're in the same space as the padded T1w images.
-masks=`find ${OutDir}/masks -type f`
-for mask in ${masks}; do
-  ImageMath 3 ${mask} PadImage ${mask} 25;
-done
+# Write progress message ($1) to both stdout and stderrs
+log_progress() {
+  echo -e "\n************************************************************" | tee -a /dev/stderr
+  echo -e "***************     $1" | tee -a /dev/stderr
+  echo -e "************************************************************\n" | tee -a /dev/stderr
+}
 
 ###############################################################################
-############  2. Create group template from the selected SSTs.   ##############
+##########    1. Construct group template from the selected SSTs.    ##########
 ###############################################################################
-echo -e "\nRunning group template creation....\n"
-PROGNAME="antsMultivariateTemplateConstruction2"
-
-# Get list of subjects going into GT
-subjects=`ls ${InDir}/fmriprep`
-
-# Make csv of SSTs to pass to group template construction script.
-SSTs=`find ${OutDir}/subjects -name "sub*template0.nii.gz"`
-for image in ${SSTs}; do echo "${image}" >> ${tmpdir}/sst_list.csv ; done
-
-# Get number of SSTs going into group template.
-numSSTs=`cat ${tmpdir}/sst_list.csv | wc -l`
-
-# Specify reference template. 
-REFTMP="MNI-1x1x1Head" # TODO: make this an argument to the container
-REFTMP_PAD="${tmpdir}/${REFTMP}_pad.nii.gz"
-
-# Pad reference template.
-ImageMath 3 ${REFTMP_PAD} PadImage ${InDir}/${REFTMP}.nii.gz 25
-
-# Get the dimensions of the padded reference template.
-voxdim=`PrintHeader ${REFTMP_PAD} | grep "Voxel Spacing" | cut -d "[" -f 2 | cut -d "]" -f 1 | sed -r 's/,//g'`
-min=`python /scripts/minMax.py ${voxdim} --min`
-imgdim1=`PrintHeader ${REFTMP_PAD} | grep " dim\[1\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
-imgdim2=`PrintHeader ${REFTMP_PAD} | grep " dim\[2\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
-imgdim3=`PrintHeader ${REFTMP_PAD} | grep " dim\[3\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
-max=`python /scripts/minMax.py ${imgdim1} ${imgdim2} ${imgdim3}`
-
-# Calculate smoothing and shrinkage parameters for template construction.
-iterinfo=`/scripts/minc-toolkit-extras/ants_generate_iterations.py --min ${min} --max ${max}`
-
-# Parse output to create flags for antsMultivariateTemplateConstruction2.sh
-iterinfo=`echo ${iterinfo} | sed -e 's/--convergence\+/-q/g' | sed -e 's/--shrink-factors\+/-f/g' | sed -e 's/--smoothing-sigmas\+/-s/g'`
-iterinfo=`echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 's/\[\+//g'`
-
-# Group template construction using antsMultivariateTemplateConstruction2.sh
-antsMultivariateTemplateConstruction2.sh -d 3 \
-  -o "${OutDir}/" \
-  -n 0 \
-  -i 5 \
-  -c 2 \
-  -j ${numSSTs} \
-  -g .15 \
-  -m CC[2] \
-  ${iterinfo} \
-  -z ${REFTMP_PAD} \
-  ${tmpdir}/sst_list.csv
-
-###############################################################################
-######  3. Group Template construction cleanup / reorganization.         ######                   ######
-###############################################################################
-
-# Rename GT and transform files to include project name.
-mv ${OutDir}/template0.nii.gz ${OutDir}/${projectName}_template0.nii.gz
-mv ${OutDir}/templatewarplog.txt ${OutDir}/${projectName}_templatewarplog.txt
-mv ${OutDir}/template0GenericAffine.mat ${OutDir}/${projectName}_template0GenericAffine.mat
-mv ${OutDir}/template0warp.nii.gz ${OutDir}/${projectName}_template0warp.nii.gz
-
-# Make subdir for jobscripts
-mkdir -p ${OutDir}/jobs
-mv ${OutDir}/job*.sh ${OutDir}/jobs
-
-# Save path to group template
-GT=${OutDir}/${projectName}_template0.nii.gz
-
-# For each sub, rename output files and move into subject-level dir
-for sub in $subjects; do
-
-  # Get subject-level output dir
-  SubDir=${OutDir}/subjects/${sub}
-
-  # Rename and move SST-to-GT warps and affine
-  files=`find ${OutDir} -maxdepth 1 -name "${sub}_*"`
-  for f in $files; do
-    name=`basename $f | sed "s/template[0-9]*/to${projectName}Template_/"`
-    mv $f ${tmpdir}/${sub}/$name # TODO: new, check this!!
-  done
-
-  # Rename and move SSTs warped to group template
-  files=`find ${OutDir} -maxdepth 1 -name "template0${sub}*"`
-  for f in $files; do
-    name=${sub}_WarpedTo${projectName}Template.nii.gz
-    mv $f ${tmpdir}/${sub}/$name # TODO: new, check this!!
-  done
-
-done
-
-###############################################################################
-######  3. Create composite warp from session space to group space       ######
-######     for each timepoint that went into the GT.                     ######
-###############################################################################
-echo -e "\nCreating native to group template composite warps....\n"
-PROGNAME="antsApplyTransforms"
-
-# Get list of Native-to-SST warps for all subjects/sessions
-Native_to_SST_warps=`find ${OutDir}/subjects -name "*toSST_Warp.nii.gz"`
-Native_to_SST_warps=`find ${tmpdir} -name "*toSST_Warp.nii.gz"`
-
-# For each timepoint, create composite warp from Native to GT space.
-for Native_to_SST_warp in ${Native_to_SST_warps}; do
-
-  sub=`basename ${Native_to_SST_warp} | cut -d "_" -f 1`
-  ses=`basename ${Native_to_SST_warp} | cut -d "_" -f 2`
-
-  SubDir=${OutDir}/subjects/${sub}
-
-  # Native_to_SST_affine=`find ${SubDir} -name "${sub}_${ses}_toSST_Affine.txt"`
-  # SST_to_GT_warp=`find ${SubDir} -name "${sub}_to${projectName}Template_Warp.nii.gz"`;
-  # SST_to_GT_affine=`find ${SubDir} -name "${sub}_to${projectName}Template_GenericAffine.mat"`;
-
-  # TODO: new version --> check this
-  Native_to_SST_affine=`find ${tmpdir} -name "${sub}_${ses}_toSST_Affine.txt"`
-  SST_to_GT_warp=`find ${tmpdir} -name "${sub}_to${projectName}Template_Warp.nii.gz"`;
-  SST_to_GT_affine=`find ${tmpdir} -name "${sub}_to${projectName}Template_GenericAffine.mat"`;
-
-  # Name of composite warp being created.
-  Native_to_GT_warp="${SubDir}/sessions/${ses}/${sub}_${ses}_to${projectName}Template_CompositeWarp.nii.gz"
+construct_gt() {
   
-  # Combine transforms from T1w space to SST space to group template space into 
-  # the composite warp. Note, transform order matters!! List in reverse order.
-  # 1. SST-to-GT warp
-  # 2. SST-to-GT affine
-  # 3. Native-to-SST warp
-  # 4. Native-to-SST affine
-  antsApplyTransforms \
-   -d 3 \
-   -e 0 \
-   -o [${Native_to_GT_warp}, 1] \
-   -r ${GT} \
-   -t ${SST_to_GT_warp} \
-   -t ${SST_to_GT_affine} \
-   -t ${Native_to_SST_warp} \
-   -t ${Native_to_SST_affine};
-done
+  log_progress "BEGIN: Running group template construction.\n"
+  PROGNAME="antsMultivariateTemplateConstruction2"
+
+  # Make csv of SSTs to pass to group template construction script.
+  SSTs=`find ${OutDir}/subjects -name "sub*template0.nii.gz"`
+  for image in ${SSTs}; do echo "${image}" >> ${tmpdir}/sst_list.csv ; done
+
+  # Get number of SSTs going into group template.
+  numSSTs=`cat ${tmpdir}/sst_list.csv | wc -l`
+
+  # Specify reference template. 
+  REFTMP="MNI-1x1x1Head" # TODO: make this an argument to the container
+  REFTMP_PAD="${tmpdir}/${REFTMP}_pad.nii.gz"
+
+  # Pad reference template.
+  ImageMath 3 ${REFTMP_PAD} PadImage ${InDir}/${REFTMP}.nii.gz 25
+
+  # Get the dimensions of the padded reference template.
+  voxdim=`PrintHeader ${REFTMP_PAD} | grep "Voxel Spacing" | cut -d "[" -f 2 | cut -d "]" -f 1 | sed -r 's/,//g'`
+  min=`python /scripts/minMax.py ${voxdim} --min`
+  imgdim1=`PrintHeader ${REFTMP_PAD} | grep " dim\[1\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
+  imgdim2=`PrintHeader ${REFTMP_PAD} | grep " dim\[2\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
+  imgdim3=`PrintHeader ${REFTMP_PAD} | grep " dim\[3\]" | cut -d "=" -f 2 | sed -e 's/\s\+//g'`
+  max=`python /scripts/minMax.py ${imgdim1} ${imgdim2} ${imgdim3}`
+
+  # Calculate smoothing and shrinkage parameters for template construction.
+  iterinfo=`/scripts/minc-toolkit-extras/ants_generate_iterations.py --min ${min} --max ${max}`
+
+  # Parse output to create flags for antsMultivariateTemplateConstruction2.sh
+  iterinfo=`echo ${iterinfo} | sed -e 's/--convergence\+/-q/g' | sed -e 's/--shrink-factors\+/-f/g' | sed -e 's/--smoothing-sigmas\+/-s/g'`
+  iterinfo=`echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 's/\[\+//g'`
+
+  # Group template construction using antsMultivariateTemplateConstruction2.sh
+  antsMultivariateTemplateConstruction2.sh -d 3 \
+    -o "${OutDir}/" \
+    -n 0 \
+    -i 5 \
+    -c 2 \
+    -j ${numSSTs} \
+    -g .15 \
+    -m CC[2] \
+    ${iterinfo} \
+    -z ${REFTMP_PAD} \
+    ${tmpdir}/sst_list.csv
+
+  #############################################################################
+  # Group Template construction cleanup / reorganization.
+  #############################################################################
+  
+  # Rename GT and transform files to include project name.
+  mv ${OutDir}/template0.nii.gz ${OutDir}/${projectName}_template0.nii.gz
+  mv ${OutDir}/templatewarplog.txt ${OutDir}/${projectName}_templatewarplog.txt
+  mv ${OutDir}/template0GenericAffine.mat ${OutDir}/${projectName}_template0GenericAffine.mat
+  mv ${OutDir}/template0warp.nii.gz ${OutDir}/${projectName}_template0warp.nii.gz
+
+  # Make subdir for jobscripts
+  mkdir -p ${OutDir}/jobs
+  mv ${OutDir}/job*.sh ${OutDir}/jobs
+
+  # Save path to group template
+  GT=${OutDir}/${projectName}_template0.nii.gz
+
+  # For each sub, rename output files and move into subject-level dir
+  for sub in $subjects; do
+
+    # Get subject-level output dir
+    SubDir=${OutDir}/subjects/${sub}
+
+    # Rename and move SST-to-GT warps and affine
+    files=`find ${OutDir} -maxdepth 1 -name "${sub}_*"`
+    for f in $files; do
+      name=`basename $f | sed "s/template[0-9]*/to${projectName}Template_/"`
+      mv $f ${tmpdir}/${sub}/$name # TODO: new, check this!!
+    done
+
+    # Rename and move SSTs warped to group template
+    files=`find ${OutDir} -maxdepth 1 -name "template0${sub}*"`
+    for f in $files; do
+      name=${sub}_WarpedTo${projectName}Template.nii.gz
+      mv $f ${tmpdir}/${sub}/$name # TODO: new, check this!!
+    done
+
+  done
+
+  log_progress "END: Finished group template construction."
+}
 
 ###############################################################################
-#### 4. Convert tissue masks from each timepoint to group template space,  ####
-####    using the composite warps, then average to generate tissue priors. ####
+############    2. Create Native-to-GT composite warps for         ############
+############       each timepoint that went into the GT.           ############
 ###############################################################################
-echo -e "\nTransforming tissue masks from native to group template space....\n"
-PROGNAME="antsApplyTransforms"
+construct_composite_warps() {
+  log_progress "BEGIN: Constructing native-to-group template composite warps. \n"
+  PROGNAME="antsApplyTransforms"
 
-#masks=`find ${OutDir}/masks -name "*mask.nii.gz"`
+  # Get list of Native-to-SST warps for all subjects/sessions
+  #Native_to_SST_warps=`find ${OutDir}/subjects -name "*toSST_Warp.nii.gz"`
+  Native_to_SST_warps=`find ${tmpdir} -name "*toSST_Warp.nii.gz"`
 
-for mask in ${masks}; do
+  # For each timepoint, create composite warp from Native to GT space.
+  for Native_to_SST_warp in ${Native_to_SST_warps}; do
 
-  sub=`basename ${mask} | cut -d _ -f 1`
-  ses=`basename ${mask} | cut -d _ -f 2`
-  maskType=`basename ${mask} | cut -d _ -f 3 | cut -d . -f 1`
+    sub=`basename ${Native_to_SST_warp} | cut -d "_" -f 1`
+    ses=`basename ${Native_to_SST_warp} | cut -d "_" -f 2`
 
-  # Name of warped mask to be created.
-  warped_mask="${OutDir}/masks/${sub}_${ses}_${maskType}_WarpedTo${projectName}Template.nii.gz"
+    SubDir=${OutDir}/subjects/${sub}
 
-  # Composite warp to transform mask from native to GT space.
-  Native_to_GT_warp=`find ${OutDir}/subjects/${sub}/sessions/${ses} -name "*CompositeWarp.nii.gz"`
-  "${OutDir}/subjects/${sub}/sessions/${ses}/${sub}_${ses}_to${projectName}Template_CompositeWarp.nii.gz"
+    # Native_to_SST_affine=`find ${SubDir} -name "${sub}_${ses}_toSST_Affine.txt"`
+    # SST_to_GT_warp=`find ${SubDir} -name "${sub}_to${projectName}Template_Warp.nii.gz"`;
+    # SST_to_GT_affine=`find ${SubDir} -name "${sub}_to${projectName}Template_GenericAffine.mat"`;
 
-  # Apply composite warp to take tissue mask from native T1w space to GT space.
-  antsApplyTransforms -d 3 -e 0 \
-    -i ${mask} \
-    -o ${warped_mask} \
-    -t ${Native_to_GT_warp} \
-    -r ${GT};
-done
+    # TODO: new version --> check this
+    Native_to_SST_affine=`find ${tmpdir} -name "${sub}_${ses}_toSST_Affine.txt"`
+    SST_to_GT_warp=`find ${tmpdir} -name "${sub}_to${projectName}Template_Warp.nii.gz"`;
+    SST_to_GT_affine=`find ${tmpdir} -name "${sub}_to${projectName}Template_GenericAffine.mat"`;
 
-# Clean warped masks by converting all values < 0.2 to 0.
-python /scripts/cleanWarpedMasks.py
-
-# Create tissue priors by averaging all tissue classification image in GT space.
-# (divide by sum of the voxels if they are all non-zero, and do nothing otherwise)
-# Script outputs 6 tissue priors total, e.g. 'CSF_NormalizedtoExtraLongTemplate_prior.nii.gz'
-echo -e "\nMaking tissue priors....\n"
-PROGNAME="scaleMasks.py"
-mkdir -p ${OutDir}/priors
-python /scripts/scaleMasks.py
-
-###############################################################################
-#############  5. Run Ants Brain Extraction on the Group Template. ############
-###############################################################################
-
-echo -e "\nRunning brain extraction on the group template....\n"
-PROGNAME="antsBrainExtraction"
-
-BrainExtractionTemplate="${InDir}/OASIS_PAC/T_template0.nii.gz"
-BrainExtractionProbMask="${InDir}/OASIS_PAC/T_template0_BrainCerebellumProbabilityMask.nii.gz"
-
-# Skull-strip the group template to get brain mask.
-antsBrainExtraction.sh -d 3 \
-  -a ${GT} \
-  -e ${BrainExtractionTemplate} \
-  -m ${BrainExtractionProbMask} \
-  -o ${OutDir}/${projectName}Template_
+    # Name of composite warp being created.
+    Native_to_GT_warp="${SubDir}/sessions/${ses}/${sub}_${ses}_to${projectName}Template_CompositeWarp.nii.gz"
+    
+    # Combine transforms from T1w space to SST space to group template space into 
+    # the composite warp. Note, transform order matters!! List in reverse order.
+    # 1. SST-to-GT warp
+    # 2. SST-to-GT affine
+    # 3. Native-to-SST warp
+    # 4. Native-to-SST affine
+    antsApplyTransforms \
+    -d 3 \
+    -e 0 \
+    -o [${Native_to_GT_warp}, 1] \
+    -r ${GT} \
+    -t ${SST_to_GT_warp} \
+    -t ${SST_to_GT_affine} \
+    -t ${Native_to_SST_warp} \
+    -t ${Native_to_SST_affine};
+  done
+  
+  log_progress "END: Finished constructing Native-to-GT composite warps."
+}
 
 ###############################################################################
-####  6. Run joint label fusion to map DKT labels onto the group template. ####
-###############################################################################  
+############    3. Create custom tissue priors in GT space.        ############
+###############################################################################
+make_tissue_priors() {
 
-# Optionally, run JLF on the SST.
-if [[ ${runJLF} ]]; then
-  echo -e "\nRunning joint label fusion on the group template....\n"
+  log_progress "BEGIN: Creating tissue masks from FreeSurfer segmentation images."
+  PROGNAME="masks.py"
+
+  # For each timepoint, generate tissue masks for each of the 6 tissue types.
+  #### This script takes the sub-*_ses-*_desc-aseg_dseg.nii.gz images from
+  #### fMRIPrep as input, and uses the label mapping defined in tissueClasses.csv
+  #### to output 6 tissue masks (GMCortical, WMCortical, CSF, GMDeep, Brainstem, 
+  #### and Cerebellum) per timepoint.
+  mkdir -p ${OutDir}/masks
+  python /scripts/createMasks.py
+
+  # Old way of generating tissues masks!
+  # https://github.com/ANTsX/ANTs/blob/master/Scripts/antsCookTemplatePriors.sh 
+
+  # Pad each tissue mask so that they're in the same space as the padded T1w images.
+  masks=`find ${OutDir}/masks -type f`
+  for mask in ${masks}; do
+    ImageMath 3 ${mask} PadImage ${mask} 25;
+  done
+
+  log_progress "END: Finished creating tissue masks."
+
+  ###############################################################################
+  log_progress "BEGIN: Transforming tissue masks from native to group template space."
+  PROGNAME="antsApplyTransforms"
+
+  # Convert each tissue mask from native T1w to group template space, using 
+  # the previously generated composite warps.
+  for mask in ${masks}; do
+
+    sub=`basename ${mask} | cut -d _ -f 1`
+    ses=`basename ${mask} | cut -d _ -f 2`
+    maskType=`basename ${mask} | cut -d _ -f 3 | cut -d . -f 1`
+
+    # Name of warped mask to be created.
+    warped_mask="${OutDir}/masks/${sub}_${ses}_${maskType}_WarpedTo${projectName}Template.nii.gz"
+
+    # Composite warp to transform mask from native to GT space.
+    Native_to_GT_warp=`find ${OutDir}/subjects/${sub}/sessions/${ses} -name "*CompositeWarp.nii.gz"`
+    "${OutDir}/subjects/${sub}/sessions/${ses}/${sub}_${ses}_to${projectName}Template_CompositeWarp.nii.gz"
+
+    # Apply composite warp to take tissue mask from native T1w space to GT space.
+    antsApplyTransforms -d 3 -e 0 \
+      -i ${mask} \
+      -o ${warped_mask} \
+      -t ${Native_to_GT_warp} \
+      -r ${GT};
+  done
+
+  ###############################################################################
+  log_progress "BEGIN: Cleaning and averaging tissue masks to create tissue priors."
+  PROGNAME="generatePriors.py"
+
+  # Clean warped masks by converting all values < 0.2 to 0.
+  python /scripts/cleanWarpedMasks.py
+
+  # Create tissue priors by averaging all tissue classification image in GT space.
+  # (divide by sum of the voxels if they are all non-zero, and do nothing otherwise)
+  # Script outputs 6 tissue priors total, e.g. 'CSF_NormalizedtoExtraLongTemplate_prior.nii.gz'
+  mkdir -p ${OutDir}/priors
+  python /scripts/generatePriors.py
+
+  log_progress "END: Finished creating tissue priors."
+}
+
+###############################################################################
+############   4. Run Ants Brain Extraction on the Group Template.  ###########
+###############################################################################
+run_brain_extraction() {
+  log_progress "BEGIN: Running brain extraction on the group template."
+  PROGNAME="antsBrainExtraction"
+
+  GT="${OutDir}/${projectName}_template0.nii.gz"
+  BrainExtractionTemplate="${InDir}/OASIS_PAC/T_template0.nii.gz"
+  BrainExtractionProbMask="${InDir}/OASIS_PAC/T_template0_BrainCerebellumProbabilityMask.nii.gz"
+
+  # Skull-strip the group template to get brain mask.
+  antsBrainExtraction.sh -d 3 \
+    -a ${GT} \
+    -e ${BrainExtractionTemplate} \
+    -m ${BrainExtractionProbMask} \
+    -o ${OutDir}/${projectName}Template_
+
+  log_progress "END: Finished brain extraction on the group template."
+}
+
+###############################################################################
+#######   5. (Optional) Run joint label fusion on the group template.   #######
+###############################################################################
+run_jlf() {
+  log_progress "BEGIN: Running joint label fusion."
   PROGNAME="antsJointLabelFusion"
 
   # Construct atlas arguments for call to antsJointLabelFusion.sh
@@ -383,6 +356,9 @@ if [[ ${runJLF} ]]; then
   # Make malf output directory
   mkdir ${OutDir}/malf
 
+  # Get path to group template
+  GT="${OutDir}/${projectName}_template0.nii.gz"
+
   # Run JLF to map DKT labels onto the group template.
   antsJointLabelFusion.sh \
     -d 3 -c 2 -j 8 -k 1 \
@@ -392,8 +368,167 @@ if [[ ${runJLF} ]]; then
     -p ${OutDir}/malf/malfPosteriors%04d.nii.gz \
     ${atlas_args}
 
+  # Move DKT-labeled GT to main output dir and rename to match other DKT-labeled images.
+  GT_labels=${OutDir}/${projectName}Template_DKT.nii.gz
+  mv ${OutDir}/malf/${projectName}Template_malfLabels.nii.gz ${GT_labels}
+
+  log_progress "END: Finished running JLF on the group template."
+}
+
+###############################################################################
+##########################         MAIN: SETUP        #########################
+###############################################################################
+
+# Set default cmd line args
+projectName=Group
+seed=1
+runAll=1          # Default to running all if -m option not used.
+runGT=""          # -m 1
+runCompWarps=""   # -m 2
+runPriors=""      # -m 3
+runBE=""          # -m 4
+runJLF=""         # -m 5 or --jlf
+useAllLabels=""
+
+# Parse cmd line options
+PARAMS=""
+while (( "$#" )); do
+  case "$1" in
+    -h | --help)
+        usage
+        exit 0
+      ;;
+    -j | --jlf)
+      runJLF=1
+      shift
+      ;; 
+    -l | --all-labels)
+      useAllLabels=1
+      shift
+      ;;
+    -m | --manual-step)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        step=$2
+        if [[ "$step" == "1" ]]; then
+          runAll=""
+          runGT=1
+        elif [[ "$step" == "2" ]]; then
+          runAll=""
+          runCompWarps=1
+        elif [[ "$step" == "3" ]]; then
+          runAll=""
+          runPriors=1
+        elif [[ "$step" == "4" ]]; then
+          runAll=""
+          runBE=1
+        elif [[ "$step" == "5" ]]; then
+          runAll=""
+          runJLF=1
+        else
+          echo "Error: $step is not a valid value for the --manual-step flag."
+          exit 1
+        fi
+        shift 2
+      else
+        echo "$0: Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -p | --project)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        projectName=$2
+        shift 2
+      else
+        echo "$0: Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -s | --seed)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        seed=$2
+        shift 2
+      else
+        echo "$0: Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -v | --version)
+        echo $VERSION
+        exit 0
+      ;;
+    -*|--*=) # unsupported flags
+      echo "$0: Error: Unsupported flag $1" >&2
+      exit 1
+      ;;
+    *) # parse positional arguments
+      PARAMS="$PARAMS $1"
+      shift
+      ;;
+  esac
+done
+
+# Set positional arguments (subject list) in their proper place
+eval set -- "$PARAMS"
+
+# Get list of subjects going into GT:
+# 1. Check fmriprep input for subjects dirs first
+subjects=`ls /data/input/fmriprep`
+
+# 2. Check for list of subjects passed in via cmd line.
+if [[ ! ${subjects} ]]; then
+  subjects="$@"
 fi
 
-# Move DKT-labeled GT to main output dir and rename to match other DKT-labeled images.
-GT_labels=${OutDir}/${projectName}Template_DKT.nii.gz
-mv ${OutDir}/malf/${projectName}Template_malfLabels.nii.gz ${GT_labels}
+# 3. Check that at least two subjects were provided.
+if [[ $(echo $subjects | wc -w) -lt 2 ]]; then
+  echo "Error: Please provide at least two subject labels for group template construction."
+  exit 1
+fi 
+
+# Set env vars for ANTs
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1
+export ANTS_RANDOM_SEED=$seed 
+
+# Make tmp dir
+tmpdir="/data/output/tmp"
+mkdir -p ${tmpdir}
+
+# Set up error handling
+set -euo pipefail
+trap 'clean_exit' EXIT
+trap 'control_c' SIGINT
+
+###############################################################################
+########################        MAIN: PROCESSING       ########################
+###############################################################################
+log_progress "ANTsPriors v${VERSION}: STARTING UP"
+
+InDir=/data/input
+OutDir=/data/output 
+
+# Run group template creation.
+if [[ ${runGT} ]] || [[ ${runAll} ]]; then
+  construct_gt
+fi
+
+# Run native-to-GT composite warp creation.
+if [[ ${runCompWarps} ]] || [[ ${runAll} ]]; then
+  construct_composite_warps
+fi
+
+# Run tissue priors creation.
+if [[ ${runPriors} ]] || [[ ${runAll} ]]; then
+  make_tissue_priors
+fi
+
+# Run brain extraction.
+if [[ ${runBE} ]] || [[ ${runAll} ]]; then
+  run_brain_extraction
+fi
+
+# Optionally, run JLF on the group template.
+if [[ ${runJLF} ]]; then
+  run_jlf
+fi
+
+log_progress "ANTsPriors v${VERSION}: FINISHED SUCCESSFULLY"
