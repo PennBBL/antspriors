@@ -172,6 +172,9 @@ construct_composite_warps() {
   log_progress "BEGIN: Constructing native-to-group template composite warps. \n"
   PROGNAME="antsApplyTransforms"
 
+  # Get path to group template
+  GT="${OutDir}/${projectName}_template0.nii.gz"
+
   # Get list of Native-to-SST warps for all subjects/sessions
   #Native_to_SST_warps=`find ${OutDir}/subjects -name "*toSST_Warp.nii.gz"`
   Native_to_SST_warps=`find ${tmpdir} -name "*toSST_Warp.nii.gz"`
@@ -246,6 +249,9 @@ make_tissue_priors() {
   ###############################################################################
   log_progress "BEGIN: Transforming tissue masks from native to group template space."
   PROGNAME="antsApplyTransforms"
+  
+  # Get path to group template
+  GT="${OutDir}/${projectName}_template0.nii.gz"
 
   # Convert each tissue mask from native T1w to group template space, using 
   # the previously generated composite warps.
@@ -253,17 +259,20 @@ make_tissue_priors() {
 
     sub=`basename ${mask} | cut -d _ -f 1`
     ses=`basename ${mask} | cut -d _ -f 2`
+    SesDir="${OutDir}/subjects/${sub}/sessions/${ses}"
+
     maskType=`basename ${mask} | cut -d _ -f 3 | cut -d . -f 1`
 
     # Name of warped mask to be created.
     warped_mask="${OutDir}/masks/${sub}_${ses}_${maskType}_WarpedTo${projectName}Template.nii.gz"
 
     # Composite warp to transform mask from native to GT space.
-    Native_to_GT_warp=`find ${OutDir}/subjects/${sub}/sessions/${ses} -name "*CompositeWarp.nii.gz"`
-    "${OutDir}/subjects/${sub}/sessions/${ses}/${sub}_${ses}_to${projectName}Template_CompositeWarp.nii.gz"
+    Native_to_GT_warp=`find ${SesDir} -name "*CompositeWarp.nii.gz"`
 
     # Apply composite warp to take tissue mask from native T1w space to GT space.
-    antsApplyTransforms -d 3 -e 0 \
+    antsApplyTransforms \
+      -d 3 \
+      -e 0 \
       -i ${mask} \
       -o ${warped_mask} \
       -t ${Native_to_GT_warp} \
@@ -281,7 +290,7 @@ make_tissue_priors() {
   # (divide by sum of the voxels if they are all non-zero, and do nothing otherwise)
   # Script outputs 6 tissue priors total, e.g. 'CSF_NormalizedtoExtraLongTemplate_prior.nii.gz'
   mkdir -p ${OutDir}/priors
-  python /scripts/generatePriors.py
+  python /scripts/createPriors.py
 
   log_progress "END: Finished creating tissue priors."
 }
