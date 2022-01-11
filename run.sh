@@ -80,8 +80,10 @@ construct_gt() {
     PROGNAME="antsMultivariateTemplateConstruction2"
 
     # Make csv of SSTs to pass to group template construction script.
-    SSTs=$(find ${OutDir}/subjects -name "sub*template0.nii.gz")
-    for image in ${SSTs}; do echo "${image}" >>${tmpdir}/sst_list.csv; done
+    for sub in ${subjects};do
+        image=$(find ${OutDir}/subjects/${sub} -name "sub*template0.nii.gz")
+        echo "${image}" >>${tmpdir}/sst_list.csv
+    done
 
     # Get number of SSTs going into group template.
     numSSTs=$(cat ${tmpdir}/sst_list.csv | wc -l)
@@ -105,20 +107,27 @@ construct_gt() {
     iterinfo=$(/scripts/minc-toolkit-extras/ants_generate_iterations.py --min ${min} --max ${max})
 
     # Parse output to create flags for antsMultivariateTemplateConstruction2.sh
-    iterinfo=$(echo ${iterinfo} | sed -e 's/--convergence\+/-q/g' | sed -e 's/--shrink-factors\+/-f/g' | sed -e 's/--smoothing-sigmas\+/-s/g')
-    iterinfo=$(echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 's/\[\+//g')
+    convergence=$(echo ${iterinfo} | cut -d \\ -f 1 | cut -d " " -f 3)
+    shrink_factors=$(echo ${iterinfo} | cut -d \\ -f 2 | cut -d " " -f 3)
+    smoothing_factors=$(echo ${iterinfo} | cut -d \\ -f 3 | cut -d " " -f 3)
+
+    # iterinfo=$(echo ${iterinfo} | sed -e 's/--convergence\+/-q/g' | sed -e 's/--shrink-factors\+/-f/g' | sed -e 's/--smoothing-sigmas\+/-s/g')
+    # iterinfo=$(echo ${iterinfo} | sed -e 's/\\\\\+//g' | sed -e 's/\]\+//g' | sed -e 's/\[\+//g')
 
     # Group template construction using antsMultivariateTemplateConstruction2.sh
-    antsMultivariateTemplateConstruction2.sh -d 3 \
-        -o "${OutDir}/" \
-        -n 0 \
+    antsMultivariateTemplateConstruction2.sh \
+        -d 3 \
         -i 5 \
         -c 2 \
-        -j ${numSSTs} \
+        -n 0 \
         -g .15 \
         -m CC[2] \
-        ${iterinfo} \
+        -q ${convergence} \
+        -f ${shrink_factors} \
+        -s ${smoothing_factors} \
+        -j ${numSSTs} \
         -z ${REFTMP_PAD} \
+        -o "${OutDir}/" \
         ${tmpdir}/sst_list.csv
 
     #############################################################################
