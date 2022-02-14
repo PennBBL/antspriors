@@ -182,40 +182,42 @@ construct_composite_warps() {
     # Get path to group template
     GT="${OutDir}/${projectName}_template0.nii.gz"
 
-    # Get list of Native-to-SST warps for all subjects/sessions
-    Native_to_SST_warps=`find ${OutDir}/subjects -name "*toSST_Warp.nii.gz"`
-
     # For each timepoint, create composite warp from Native to GT space.
-    for Native_to_SST_warp in ${Native_to_SST_warps}; do
+    for sub in ${subjects}; do
 
-        sub=$(basename ${Native_to_SST_warp} | cut -d "_" -f 1)
-        ses=$(basename ${Native_to_SST_warp} | cut -d "_" -f 2)
+        sessions=$(ls ${OutDir}/subjects/${sub}/sessions/)
 
-        SubDir=${OutDir}/subjects/${sub}
+        for ses in ${sessions}; do
+            
+            SubDir="${OutDir}/subjects/${sub}"
 
-        # Also get Native-to-SST affine, and SST-to-GT warp/affine
-        Native_to_SST_affine=`find ${SubDir} -name "${sub}_${ses}_toSST_Affine.txt"`
-        SST_to_GT_warp=$(find ${tmpdir} -name "${sub}_to${projectName}Template_Warp.nii.gz")
-        SST_to_GT_affine=$(find ${tmpdir} -name "${sub}_to${projectName}Template_GenericAffine.mat")
+            # Get Native-to-SST warp/affine
+            Native_to_SST_warp=`find ${SubDir} -name "${sub}_${ses}_toSST_Warp.nii.gz"`
+            Native_to_SST_affine=`find ${SubDir} -name "${sub}_${ses}_toSST_Affine.txt"`
 
-        # Name of composite warp being created.
-        Native_to_GT_warp="${SubDir}/sessions/${ses}/${sub}_${ses}_to${projectName}Template_CompositeWarp.nii.gz"
+            # Get SST-to-GT warp/affine
+            SST_to_GT_warp=$(find ${tmpdir} -name "${sub}_to${projectName}Template_Warp.nii.gz")
+            SST_to_GT_affine=$(find ${tmpdir} -name "${sub}_to${projectName}Template_GenericAffine.mat")
 
-        # Combine transforms from T1w space to SST space to group template space into
-        # the composite warp. Note, transform order matters!! List in reverse order.
-        # 1. SST-to-GT warp
-        # 2. SST-to-GT affine
-        # 3. Native-to-SST warp
-        # 4. Native-to-SST affine
-        antsApplyTransforms \
-            -d 3 \
-            -e 0 \
-            -o [${Native_to_GT_warp}, 1] \
-            -r ${GT} \
-            -t ${SST_to_GT_warp} \
-            -t ${SST_to_GT_affine} \
-            -t ${Native_to_SST_warp} \
-            -t ${Native_to_SST_affine}
+            # Name of composite warp being created.
+            Native_to_GT_warp="${SubDir}/sessions/${ses}/${sub}_${ses}_to${projectName}Template_CompositeWarp.nii.gz"
+
+            # Combine transforms from T1w space to SST space to group template space into
+            # the composite warp. Note, transform order matters!! List in reverse order.
+            # 1. SST-to-GT warp
+            # 2. SST-to-GT affine
+            # 3. Native-to-SST warp
+            # 4. Native-to-SST affine
+            antsApplyTransforms \
+                -d 3 \
+                -e 0 \
+                -o [${Native_to_GT_warp}, 1] \
+                -r ${GT} \
+                -t ${SST_to_GT_warp} \
+                -t ${SST_to_GT_affine} \
+                -t ${Native_to_SST_warp} \
+                -t ${Native_to_SST_affine}
+        done
     done
 
     log_progress "END: Finished constructing Native-to-GT composite warps."
