@@ -184,7 +184,6 @@ construct_composite_warps() {
 
     # Get list of Native-to-SST warps for all subjects/sessions
     Native_to_SST_warps=`find ${OutDir}/subjects -name "*toSST_Warp.nii.gz"`
-    # Native_to_SST_warps=$(find ${tmpdir} -name "*toSST_Warp.nii.gz")
 
     # For each timepoint, create composite warp from Native to GT space.
     for Native_to_SST_warp in ${Native_to_SST_warps}; do
