@@ -184,8 +184,8 @@ construct_composite_warps() {
     GT="${OutDir}/${projectName}_template0.nii.gz"
 
     # Get list of Native-to-SST warps for all subjects/sessions
-    #Native_to_SST_warps=`find ${OutDir}/subjects -name "*toSST_Warp.nii.gz"`
-    Native_to_SST_warps=$(find ${tmpdir} -name "*toSST_Warp.nii.gz")
+    Native_to_SST_warps=`find ${OutDir}/subjects -name "*toSST_Warp.nii.gz"`
+    # Native_to_SST_warps=$(find ${tmpdir} -name "*toSST_Warp.nii.gz")
 
     # For each timepoint, create composite warp from Native to GT space.
     for Native_to_SST_warp in ${Native_to_SST_warps}; do
@@ -195,12 +195,8 @@ construct_composite_warps() {
 
         SubDir=${OutDir}/subjects/${sub}
 
-        # Native_to_SST_affine=`find ${SubDir} -name "${sub}_${ses}_toSST_Affine.txt"`
-        # SST_to_GT_warp=`find ${SubDir} -name "${sub}_to${projectName}Template_Warp.nii.gz"`;
-        # SST_to_GT_affine=`find ${SubDir} -name "${sub}_to${projectName}Template_GenericAffine.mat"`;
-
-        # TODO: new version --> check this
-        Native_to_SST_affine=$(find ${tmpdir} -name "${sub}_${ses}_toSST_Affine.txt")
+        # Also get Native-to-SST affine, and SST-to-GT warp/affine
+        Native_to_SST_affine=`find ${SubDir} -name "${sub}_${ses}_toSST_Affine.txt"`
         SST_to_GT_warp=$(find ${tmpdir} -name "${sub}_to${projectName}Template_Warp.nii.gz")
         SST_to_GT_affine=$(find ${tmpdir} -name "${sub}_to${projectName}Template_GenericAffine.mat")
 
