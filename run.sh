@@ -157,14 +157,14 @@ construct_gt() {
         files=$(find ${OutDir} -maxdepth 1 -name "${sub}_*")
         for f in $files; do
             name=$(basename $f | sed "s/template[0-9]*/to${projectName}Template_/")
-            mv $f ${tmpdir}/${sub}/$name # TODO: new, check this!!
+            mv $f ${tmpdir}/${sub}/$name
         done
 
         # Rename and move SSTs warped to group template
         files=$(find ${OutDir} -maxdepth 1 -name "template0${sub}*")
         for f in $files; do
             name=${sub}_WarpedTo${projectName}Template.nii.gz
-            mv $f ${tmpdir}/${sub}/$name # TODO: new, check this!!
+            mv $f ${tmpdir}/${sub}/$name
         done
 
     done
@@ -509,6 +509,11 @@ export ANTS_RANDOM_SEED=$seed
 # Make tmp dir
 tmpdir="/data/output/tmp"
 mkdir -p ${tmpdir}
+
+# Also make tmp subdirs for each subject
+for sub in ${subjects};do
+    mkdir -p ${tmpdir}/${sub}
+done
 
 # Set up error handling
 set -euo pipefail
