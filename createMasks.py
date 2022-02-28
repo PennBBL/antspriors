@@ -21,6 +21,10 @@ outDir= '/data/output'
 # Get list of fmriprep aseg files per subject/session
 aseg_files = glob.glob(inDir + '/fmriprep/sub-*/ses-*/anat/*desc-aseg*.nii.gz')
 
+# Error handling! Check that aseg_file were found
+if not aseg_files:
+    raise Exception("Error: fMRIPrep 'aseg-dseg' files could not be found")
+
 # Read in tissueClasses.csv. This csv maps freesurfer aseg tissue labels
 # to the 6 tissue classes used in Atropos segmentation.
 # (CorticalGM, CorticalWM, CSF, DeepGM, Brainstem, Cerebellum).
