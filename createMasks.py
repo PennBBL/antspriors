@@ -121,12 +121,12 @@ for aseg_file in aseg_files:
     cereb_img = nib.Nifti1Image(aseg_cereb, affine=aseg_img.affine)
     
     # Export tissue masks to .nii.gz files
-    gmcort_img.to_filename(f'/data/output/masks/{sub}_{ses}_GMCortical-mask')
-    wmcort_img.to_filename(f'/data/output/masks/{sub}_{ses}_WMCortical-mask')
-    csf_img.to_filename(f'/data/output/masks/{sub}_{ses}_CSF-mask')
-    gmdeep_img.to_filename(f'/data/output/masks/{sub}_{ses}_GMDeep-mask')
-    bstem_img.to_filename(f'/data/output/masks/{sub}_{ses}_Brainstem-mask')
-    cereb_img.to_filename(f'/data/output/masks/{sub}_{ses}_Cerebellum-mask')
+    gmcort_img.to_filename(f'/data/output/masks/{sub}_{ses}_GMCortical-mask.nii.gz')
+    wmcort_img.to_filename(f'/data/output/masks/{sub}_{ses}_WMCortical-mask.nii.gz')
+    csf_img.to_filename(f'/data/output/masks/{sub}_{ses}_CSF-mask.nii.gz')
+    gmdeep_img.to_filename(f'/data/output/masks/{sub}_{ses}_GMDeep-mask.nii.gz')
+    bstem_img.to_filename(f'/data/output/masks/{sub}_{ses}_Brainstem-mask.nii.gz')
+    cereb_img.to_filename(f'/data/output/masks/{sub}_{ses}_Cerebellum-mask.nii.gz')
 
 # Sanity check: After adding the external CSF, are the number of non-zero voxels
 # the same as in the dilated mask? If so, then none of the original labels were
