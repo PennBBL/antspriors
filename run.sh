@@ -285,7 +285,7 @@ make_tissue_priors() {
 
     ###############################################################################
     log_progress "BEGIN: Cleaning and averaging tissue masks to create tissue priors."
-    PROGNAME="generatePriors.py"
+    PROGNAME="createPriors.py"
 
     # Clean warped masks by converting all values < 0.2 to 0.
     python /scripts/cleanWarpedMasks.py
