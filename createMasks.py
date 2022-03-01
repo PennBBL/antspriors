@@ -32,6 +32,15 @@ tissue_df = pd.read_csv(inDir + '/tissueClasses.csv')
 
 # Loop over aseg images, and create GM, WM and CSF images
 for aseg_file in aseg_files:
+
+    # Check if session has been included in ANTsLongitudinal Pipeline... 
+    aseg_filename = os.path.basename(aseg_file)
+    sub = aseg_filename.split("_")[0]
+    ses = aseg_filename.split("_")[1]
+    # If session path doesn't exist, this session wasnt included in the SST, so skip processing this aseg
+    if not os.path.isdir(os.path.join(outDir, 'subjects', sub, 'sessions', ses)):
+        continue
+
     # Load image data via nibabel
     aseg_img = nib.load(aseg_file)
     aseg = aseg_img.get_fdata()
@@ -93,8 +102,6 @@ for aseg_file in aseg_files:
     gmdeep_img = nib.Nifti1Image(aseg_gmdeep, affine=aseg_img.affine)
     bstem_img = nib.Nifti1Image(aseg_bstem, affine=aseg_img.affine)
     cereb_img = nib.Nifti1Image(aseg_cereb, affine=aseg_img.affine)
-
-    aseg_filename = os.path.basename(aseg_file)
 
     # Export tissue masks to .nii.gz files
     gmcort_img.to_filename('/data/output/masks/'+aseg_filename.replace('desc-aseg_dseg', 'GMCortical-mask'))
