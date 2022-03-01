@@ -77,7 +77,6 @@ for aseg_file in aseg_files:
         # If external_csf_mask values are only [0,1], we're good to continue. 
         if np.array_equal(np.unique(external_csf_mask), np.array([0, 1])):
             done = True
-            print(f"{sub} {ses} used {iterations} iterations")
         
         # If -1's are present, retry dilation with additional iteration.
         else:
