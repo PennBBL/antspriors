@@ -37,32 +37,51 @@ for aseg_file in aseg_files:
     aseg_filename = os.path.basename(aseg_file)
     sub = aseg_filename.split("_")[0]
     ses = aseg_filename.split("_")[1]
+    
     # If session path doesn't exist, this session wasnt included in the SST, so skip processing this aseg
-    if not os.path.isdir(os.path.join(outDir, 'subjects', sub, 'sessions', ses)):
+    sesDir = os.path.join(outDir, 'subjects', sub, 'sessions', ses)
+    if not os.path.isdir(sesDir):
+        print(f"skipping {sub} {ses}!")
         continue
 
     # Load image data via nibabel
     aseg_img = nib.load(aseg_file)
     aseg = aseg_img.get_fdata()
 
-    # TODO: experiment with using dialated/smoothed mask from ANTsSST?
+    # Binarize the aseg image.
+    aseg_binary = deepcopy(aseg)
+    aseg_binary[aseg_binary > 0] = 1
+
     # Get the corresponding mask
     fmriprep_dir = os.path.dirname(aseg_file)
     mask_file = [file for file in glob.glob(fmriprep_dir + '/*desc-brain_mask.nii.gz') if 'MNI' not in file][0]
     mask_img = nib.load(mask_file)
     mask = mask_img.get_fdata()
 
-    # Dilate the mask to include external CSF
-    dilated_mask = ndimage.binary_dilation(mask, iterations=4).astype(mask.dtype)
-    #https://www.programcreek.com/python/example/93929/scipy.ndimage.binary_dilation
-    #https://nilearn.github.io/manipulating_images/manipulating_images.html
+    # Try to get external_csf_mask, if -1's present, increase dilation and retry.
+    done = False
+    iterations=5
+    while not done:
 
-    # Binarize the aseg image.
-    aseg_binary = deepcopy(aseg)
-    aseg_binary[aseg_binary > 0] = 1
-
-    # Locate external csf --> voxels that are in dilated mask but not in the aseg image.
-    external_csf_mask = dilated_mask - aseg_binary
+        # Only attempt up to 10 iterations before breaking with error message
+        assert iterations <= 10, f"Could not generate External CSF Mask for {sub} {ses}! Values outside [0,1] present even after additional dilation."
+        
+        # Dilate the mask to include external CSF
+        dilated_mask = ndimage.binary_dilation(mask, iterations=iterations).astype(mask.dtype)
+        #https://www.programcreek.com/python/example/93929/scipy.ndimage.binary_dilation
+        #https://nilearn.github.io/manipulating_images/manipulating_images.html
+        
+        # Locate external csf --> voxels that are in dilated mask but not in the aseg image.
+        external_csf_mask = dilated_mask - aseg_binary
+        
+        # If external_csf_mask values are only [0,1], we're good to continue. 
+        if np.array_equal(np.unique(external_csf_mask), np.array([0, 1])):
+            done = True
+            print(f"{sub} {ses} used {iterations} iterations")
+        
+        # If -1's are present, retry dilation with additional iteration.
+        else:
+            iterations+=1
 
     # Multiply the external csf binary mask by 24 (CSF value in FreeSurfer aseg), to
     # label voxels in the dilated mask but not in the original mask as CSF (24).
@@ -93,8 +112,7 @@ for aseg_file in aseg_files:
     if np.array_equal(np.unique(aseg_gmcort), np.array([0, 1])):
         print('All values in the aseg image have successfully been converted to 0 or 1')
     else:
-        print('Oh no! There is a value in one of your aseg images that is not in tissueClasses.csv')
-        break
+        raise Exception(f'Error: There is a value in one of your aseg images that is not in tissueClasses.csv. \n Please check {aseg_filename}.')
 
     gmcort_img = nib.Nifti1Image(aseg_gmcort, affine=aseg_img.affine)
     wmcort_img = nib.Nifti1Image(aseg_wmcort, affine=aseg_img.affine)
@@ -102,7 +120,7 @@ for aseg_file in aseg_files:
     gmdeep_img = nib.Nifti1Image(aseg_gmdeep, affine=aseg_img.affine)
     bstem_img = nib.Nifti1Image(aseg_bstem, affine=aseg_img.affine)
     cereb_img = nib.Nifti1Image(aseg_cereb, affine=aseg_img.affine)
-
+    
     # Export tissue masks to .nii.gz files
     gmcort_img.to_filename('/data/output/masks/'+aseg_filename.replace('desc-aseg_dseg', 'GMCortical-mask'))
     wmcort_img.to_filename('/data/output/masks/'+aseg_filename.replace('desc-aseg_dseg', 'WMCortical-mask'))
