@@ -282,6 +282,8 @@ make_tissue_priors() {
             -t ${Native_to_GT_warp} \
             -r ${GT}
     done
+    
+    log_progress "END: Finished transforming tissue masks from native to group template space."
 
     ###############################################################################
     log_progress "BEGIN: Cleaning and averaging tissue masks to create tissue priors."
